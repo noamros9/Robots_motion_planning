@@ -3,6 +3,8 @@ import random
 import networkx as nx
 import time
 import Collision_detection
+import matplotlib.pyplot as plt
+import math
 
 
 class Dynamic_kd_tree:
@@ -59,10 +61,11 @@ def get_new_point(nn, p, etha, d):
     return new_point
 
 
-def generate_path(path, obstacles,  radius, start, destination):
+def generate_path(path, obstacles,  radius, distance_to_travel, start, destination):
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
+    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.1)) # added parameter
 
     #A list of the obstacles, each represented as a CGAL Polygon_2 object
     obstacles = [Polygon_2(obstacle) for obstacle in obstacles]
@@ -70,7 +73,7 @@ def generate_path(path, obstacles,  radius, start, destination):
     #Construct a graph. Add the start and target configurations as vertices
     G = nx.DiGraph()
     #We work with 6 dimensional points because of kd-tree compilation issues
-    print(type(start.x()))
+    # print(type(start.x()))
     begin = Point_d(6, [start.x(), start.y(), FT(0), FT(0), FT(0), FT(0)])
     end = Point_d(6, [destination.x(), destination.y(), FT(0), FT(0), FT(0), FT(0)])
     G.add_node(begin)
@@ -99,19 +102,31 @@ def generate_path(path, obstacles,  radius, start, destination):
     j = 0
     done = False
     while(done != True):
-        #print(i)
-        if(i%500 == 0):
+        if(i%100 == 0 or True):
             #Every 500 iterations attempt to connect the goal configuration
-            print("Number of valid points sampled:", i)
+            # changed the parameter to 100
+            # print("Number of valid points sampled:", i)
             i += 1
             p = end
             nn = tree.nearest_neighbor(p)
-            potential_edge = Segment_2(Point_2(nn[0], nn[1]), Point_2(p[0], p[1]))
+            d = ed.transformed_distance(p, nn)  # returns the true Euclidean distance
+            # find the new config at distance eta from nn
+            if (d.to_double()**0.5 < distance_per_edge_limit.to_double()**2):
+                new_point = p
+                # print("less than etha")
+            else:
+                new_point = get_new_point(nn, p, distance_per_edge_limit, d)
+            potential_edge = Segment_2(Point_2(nn[0], nn[1]), Point_2(new_point[0], new_point[1]))
+            # potential_edge = Segment_2(Point_2(nn[0], nn[1]), Point_2(p[0], p[1]))
             if cd.is_edge_valid(potential_edge):
-                G.add_edge(p, nn)
-                G.add_edge(nn, p)
-                done = True
-                break
+                G.add_node(new_point)
+                G.add_edge(nn, new_point)
+                G.add_edge(new_point, nn)
+                tree.insert(new_point)
+
+                if new_point == end:
+                    done = True
+                    break
         else:
             #sample a random configuration (x,y - positions for the center of the robot)
             rand_x = FT(random.uniform(x_range[0], x_range[1]))
@@ -127,7 +142,7 @@ def generate_path(path, obstacles,  radius, start, destination):
                 #find the new config at distance eta from nn
                 if(d < etha):
                     new_point = p
-                    #print("less than etha")
+                    # print("less than etha")
                 else:
                     new_point = get_new_point(nn, p, etha, d)
                 #test whether the edge is collision free (consider both collision with the obstacles, and robot-robot collision)
@@ -141,36 +156,31 @@ def generate_path(path, obstacles,  radius, start, destination):
                     tree.insert(new_point)
                     j += 1
 
-    print("done")
-    print("tree size:", j)
+    # print("done")
+    # print("tree size:", j)
     G.add_node(end)
 
     if(nx.has_path(G, begin, end)):
-        print("path found")
+        # print("path found")
         temp = nx.shortest_path(G, begin, end)
         for p in temp:
             path.append([Point_2(p[0], p[1])])
-        print(path)
+        # print(path)
         t1 = time.perf_counter()
-        print("time:", t1-t0)
-    return
+        # print("time:", t1-t0)
+
+    return path
 
 
-def single_robot_path():
+def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, objective, obstacles):
     #Run RRT for a single disk robot
-    print("we're here")
-    obst1 = Polygon_2([Point_2(0, 0), Point_2(2, 0), Point_2(2, 2), Point_2(0, 2)])
-    obst2 = Polygon_2([Point_2(5, 5), Point_2(5, 6), Point_2(6, 6)])
-    obstacles = [obst1, obst2]
 
-    start = Point_2(10, 12.25)
-    goal = Point_2(5, 4)
-
-    radius = FT(1)
+    start = robot
+    goal = objective
 
     path = []
-    print("HI")
-    generate_path(path, obstacles, radius, start, goal)
+    path = generate_path(path, obstacles, radius, distance_to_travel, start, goal)
     print("Found path: ", path)
 
+    return path
 

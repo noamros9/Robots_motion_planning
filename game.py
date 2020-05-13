@@ -182,10 +182,8 @@ def initialize():
         team_objectives = ps.blue_objectives
         opponent_objectives = ps.red_objectives
         data = ps.blue_data
-    print("1")
-    print(path_name)
+
     gp = importlib.import_module(path_name)
-    print("2")
     params =  [ps.time,
                float(ps.D),
                FT(ps.R)]
