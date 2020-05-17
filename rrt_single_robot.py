@@ -65,7 +65,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
-    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.1)) # added parameter
+    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.02)) # added parameter
 
     #A list of the obstacles, each represented as a CGAL Polygon_2 object
     obstacles = [Polygon_2(obstacle) for obstacle in obstacles]
@@ -102,7 +102,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     j = 0
     done = False
     while(done != True):
-        if(i%100 == 0 or True):
+        if(i%100 == 0):
             #Every 500 iterations attempt to connect the goal configuration
             # changed the parameter to 100
             # print("Number of valid points sampled:", i)
@@ -160,6 +160,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     # print("tree size:", j)
     G.add_node(end)
 
+    """
     if(nx.has_path(G, begin, end)):
         # print("path found")
         temp = nx.shortest_path(G, begin, end)
@@ -168,8 +169,8 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
         # print(path)
         t1 = time.perf_counter()
         # print("time:", t1-t0)
-
-    return path
+    """
+    return G
 
 
 def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, objective, obstacles):
@@ -179,8 +180,8 @@ def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, obj
     goal = objective
 
     path = []
-    path = generate_path(path, obstacles, radius, distance_to_travel, start, goal)
-    print("Found path: ", path)
+    single_robot_graph = generate_path(path, obstacles, radius, distance_to_travel, start, goal)
+    # print("Found path: ", path)
 
-    return path
+    return single_robot_graph
 
