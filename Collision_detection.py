@@ -1,4 +1,5 @@
 from arr2_epec_cs_ex import *
+from circle_triangle_collision import is_circle_collide_triangle
 
 class Collision_detector:
     cspace = None
@@ -58,7 +59,8 @@ class Collision_detector:
                 return False
         return True
 
-    def is_point_valid_robot_robot(p, team_robots, radius):
+    #   checks collision of the circle (with center p and radius r) with other team_robots
+    def is_point_valid_robot_robot(p, team_robots, r):
 
         point_x, point_y = point_2_to_xy(p)
         for team_robot in team_robots:
@@ -66,7 +68,25 @@ class Collision_detector:
             distX = point_x - robot_x
             distY = point_y - robot_y
             distance = ((distX*distX) + (distY*distY))**0.5
-            if distance < 2*radius:
+            if distance < 2*r:
                 return False
         return True
     
+    #   checks collision of the circle (with center p and radius r) with coupons
+    #   output: if there's a collision with a coupon with positive value - return true. return false otherwise
+    def is_collision_robot_coupons(coupons, p, r):
+
+        cd = Collision_detection.Collision_detector(coupons, r)
+        
+        return not cd.is_point_valid(p)
+
+    #   checks collision of the circle (with center p and radius r) with coupons
+    #   output: if there's a collision with a coupon with positive value - return the coupon. return None otherwise
+    def coupon_collide_robot(coupons, p, r):
+
+        for coupon in coupons:
+            if is_circle_collide_triangle(p, r, coupon):
+                return coupon
+        return None
+
+        
