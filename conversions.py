@@ -6,6 +6,9 @@ def point_2_to_xy(p):
 def xy_to_point_2(x, y):
   return Point_2(x, y)
 
+def point_d_to_point_2(p): #Might be necessary for calcH
+  return Point_2(p.x(),p.y())
+
 def coords_list_to_polygon_2(lst):
   lst0 = []
   for i in range(len(lst)//2):
