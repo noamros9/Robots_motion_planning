@@ -29,19 +29,30 @@ def find_random_point(graph_single_robot, obstacles, team_robots, radius):
 
     return p
 
-def calc_heur(node,objective):
-    return ed.transformed_distance(node, objective) # For now the heuristic will be the euclidian distance from the objective
+# adj returns all adjacent neighbors of a vertex in the roadmap G[i]
+def adj(vertex,G): # Gi=(Vi,Ei)
+    N=[]
+    for each edge in G[1]:
+        if (vertex == edge[0]): #if the vertex is on 1 point of the edge then add the neighbor to the list
+            N.append(edge[1])
+        if (vertex == edge[1])
+            N.append(edge[0])
+    return N
+
+def calc_heur(neighbor,objective):
+    return ed.transformed_distance(neighbor, objective) # For now the heuristic will be the euclidian distance from the objective
 
     
     # Oracle receives for each robot: nearest neighbor, random point that was chosen, the tensor product and the objective
 def oracle(V_near,Q_rand,G,team_objectives):
-    #V_new = [empty for i in range(N)] 
+    V_new = [None for i in range(N)] 
     for i in range(N):
-        if Q_rand[i] = team_objectives[i]: # If we are guiding to a solution 
-            # H = [calc_heur(neighbor,team_objectives[i]) for each neighbor) # H is the list of heuristics for each neighbor of the nn
-            # V_new[i] = neighbor[H.index(min(values))] # V_new will be the neighbor with the smallest heuristic value
+        N=adj(V_near[i],G[i]) 
+        if Q_rand[i] = team_objectives[i]: # If we are guiding to a first solution (might be a problem because team objectives is a list of Point_2 and Q_rand is a list of Point_d)
+            H = [calc_heur(neighbor,team_objectives[i]) for each neighbor in N) # H is the list of heuristics for each neighbor of the nn
+            V_new[i] = N[H.index(min(H))] # V_new will be the neighbor with the smallest heuristic value
         else: # if we are exploring better solutions
-            # V_new[i] = neighbor[randint(0,Length(neighbor))] # V_new will be chosen randomly from the neighbors of the nn
+            V_new[i] = N[random.randint(0,Length(N)-1)] # V_new will be chosen randomly from the neighbors of the nn
     return V_new
 
 
@@ -56,7 +67,7 @@ def find_path_in_tensor_roadmap(team):
     for i in range(N):
         team_members = [team.team_robots[j] for j in range(N) if j != i]
         Q_rands[i] = find_random_point(graphs_single_robots[i], team.obstacles, team_members, team.radius)
-        #V_near[i] = tree.nearest_neighbor(Q_rands[i])
+        V_near[i] = graphs_single_robot[i].nearest_neighbor(Q_rands[i])
     V_new = oracle(V_near,Q_rands,,team_objectives)
 
     # to-do: oracle and rest of algorithm 7 in the drrt* paper
