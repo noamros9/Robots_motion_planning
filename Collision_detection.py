@@ -57,3 +57,16 @@ class Collision_detector:
             if(f.data()>0):
                 return False
         return True
+
+    def is_point_valid_robot_robot(p, team_robots, radius):
+
+        point_x, point_y = point_2_to_xy(p)
+        for team_robot in team_robots:
+            robot_x, robot_y = point_2_to_xy(team_robot)
+            distX = point_x - robot_x
+            distY = point_y - robot_y
+            distance = ((distX*distX) + (distY*distY))**0.5
+            if distance < 2*radius:
+                return False
+        return True
+    
