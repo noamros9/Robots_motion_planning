@@ -1,4 +1,4 @@
-from arr2_epec_cs_ex import Point_2, Polygon_2
+from arr2_epec_cs_ex import *
 
 def point_2_to_xy(p):
   return (p.x().to_double(), p.y().to_double())
@@ -7,7 +7,10 @@ def xy_to_point_2(x, y):
   return Point_2(x, y)
 
 def point_d_to_point_2(p): #Might be necessary for calcH
-  return Point_2(p.x(),p.y())
+  p_x = p.cartesian(0)
+  p_y = p.cartesian(1)
+  return Point_2(p_x, p_y)
+
 
 def coords_list_to_polygon_2(lst):
   lst0 = []

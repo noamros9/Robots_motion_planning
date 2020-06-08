@@ -3,11 +3,12 @@ import drrt_ao
 
 class BlueTeam:
 
-    def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots, radius):
+    def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius):
         self.graphs_single_robots = graphs_single_robot
         self.obstacles = obstacles
         self.team_robots = team_robots
         self.opponent_robots = opponent_robots
+        self.team_objectives = team_objectives
         self.radius = radius
 
 
@@ -30,7 +31,7 @@ def initialize(params):
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
     graphs_single_robot = drrt_ao.initialize(init_time, radius,distance_to_travel, team_robots, team_objectives, obstacles)
 
-    blue_team = BlueTeam(graphs_single_robot, obstacles, team_robots, opponent_robots, radius)
+    blue_team = BlueTeam(graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius)
     path = drrt_ao.find_path_in_tensor_roadmap(blue_team)
     #return path
 

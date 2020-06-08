@@ -4,11 +4,12 @@ import drrt_ao
 
 class RedTeam:
 
-    def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots, radius):
+    def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius):
         self.graphs_single_robots = graphs_single_robot
         self.obstacles = obstacles
         self.team_robots = team_robots
         self.opponent_robots = opponent_robots
+        self.team_objectives = team_objectives
         self.radius = radius
 
 
@@ -31,7 +32,7 @@ def initialize(params):
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
     graphs_single_robot = drrt_ao.initialize(init_time, radius,distance_to_travel, team_robots, team_objectives, obstacles)
 
-    red_team = RedTeam(graphs_single_robot, obstacles, team_robots, opponent_robots, radius)
+    red_team = RedTeam(graphs_single_robot, obstacles, team_robots, opponent_robots, team_objectives, radius)
 
     # as in initialization - we don't consider opponent robots as obstacles in this phase.
     # we would consider it in play_turn

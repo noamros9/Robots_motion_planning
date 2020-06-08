@@ -1,5 +1,6 @@
 from arr2_epec_cs_ex import *
 from circle_triangle_collision import is_circle_collide_triangle
+import conversions
 
 class Collision_detector:
     cspace = None
@@ -60,33 +61,32 @@ class Collision_detector:
         return True
 
     #   checks collision of the circle (with center p and radius r) with other team_robots
-    def is_point_valid_robot_robot(p, team_robots, r):
+    def is_point_valid_robot_robot(self, p, team_robots, radius):
 
-        point_x, point_y = point_2_to_xy(p)
+        point_x, point_y = conversions.point_2_to_xy(p)
         for team_robot in team_robots:
-            robot_x, robot_y = point_2_to_xy(team_robot)
+            robot_x, robot_y = conversions.point_2_to_xy(team_robot)
             distX = point_x - robot_x
             distY = point_y - robot_y
             distance = ((distX*distX) + (distY*distY))**0.5
-            if distance < 2*r:
+            if distance < 2*radius.to_double():
                 return False
         return True
-    
-    #   checks collision of the circle (with center p and radius r) with coupons
-    #   output: if there's a collision with a coupon with positive value - return true. return false otherwise
-    def is_collision_robot_coupons(coupons, p, r):
 
-        cd = Collision_detection.Collision_detector(coupons, r)
-        
-        return not cd.is_point_valid(p)
+#   checks collision of the circle (with center p and radius r) with coupons
+#   output: if there's a collision with a coupon with positive value - return true. return false otherwise
+
+
+def is_collision_robot_coupons(coupons, p, radius):
+    cd = Collision_detector(coupons, radius)
+    return not cd.is_point_valid(p)
 
     #   checks collision of the circle (with center p and radius r) with coupons
     #   output: if there's a collision with a coupon with positive value - return the coupon. return None otherwise
-    def coupon_collide_robot(coupons, p, r):
 
-        for coupon in coupons:
-            if is_circle_collide_triangle(p, r, coupon):
-                return coupon
-        return None
+def coupon_collide_robot(coupons, p, r):
 
-        
+    for coupon in coupons:
+        if is_circle_collide_triangle(p, r, coupon):
+            return coupon
+    return None
