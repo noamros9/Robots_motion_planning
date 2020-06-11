@@ -5,6 +5,7 @@ import networkx as nx
 import Collision_detection
 import conversions
 import random
+import heuristic
 
 
 def find_random_point(graph_single_robot, obstacles, team_robots, radius):
@@ -31,26 +32,27 @@ def find_random_point(graph_single_robot, obstacles, team_robots, radius):
 
     return p
 
-def calc_heur(neighbor,objective):
-    ed = Euclidean_distance()
-    return ed.transformed_distance(conversions.point_d_to_point_2(neighbor), objective) # For now the heuristic will be the euclidian distance from the objective
 
-    
 # informed_decision receives for each robot: nearest neighbor, random point that was chosen, the tensor product and the objective
-def informed_decision(V_near, Q_rand, G, team_objectives):
-    num = len(G)
-    V_new = [None for i in range(num)]
-    for i in range(num):
-        N = list(G[i].neighbors(V_near[i])) # A list of all neighbors of V_near in the roadmap
-        if conversions.point_d_to_point_2(Q_rand[i]) == team_objectives[i]: # If we are guiding to a first solution (might be a problem because team objectives is a list of Point_2 and Q_rand is a list of Point_d)
-            H = [calc_heur(neighbor,team_objectives[i]) for neighbor in N] # H is the list of heuristics for each neighbor of the nn
+def informed_decision(team, V_near, Q_rand, heuristic_obj):
+    G = team.graphs_single_robots
+    V_new = [None for i in range(len(G))]
+    for i in range(len(G)):
+        N = list(G[i].neighbors(V_near[i])) # A list of all neighbors of V_near in the roadmap + V_near[i]
+        #in the article it is to consider the point itself too (so the robot might stay in place)
+        #need to discuss it
+        #N.append(V_near[i])
+        if conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
+            # H is the list of heuristics for each neighbor of the nn
+            H = [heuristic.calc_heur(heuristic_obj,\
+                    i, V_near[i], neighbor, team.team_objectives[i]) for neighbor in N]
             V_new[i] = N[H.index(min(H))] # V_new will be the neighbor with the smallest heuristic value
         else: # if we are exploring better solutions
             V_new[i] = N[random.randint(0,len(N)-1)] # V_new will be chosen randomly from the neighbors of the nn
     return V_new
 
 
-def find_path_in_tensor_roadmap(team):
+def find_path_in_tensor_roadmap(team, heuristic_obj):
     N = len(team.graphs_single_robots)
     graphs_single_robots = team.graphs_single_robots
     team_robots = team.team_robots
@@ -67,7 +69,7 @@ def find_path_in_tensor_roadmap(team):
         Q_rands[i] = find_random_point(graphs_single_robots[i], team.obstacles, team_members, team.radius)
         V_near[i] = path[i].nearest_neighbor(Q_rands[i])
 
-    V_new = informed_decision(V_near,Q_rands,graphs_single_robots,team_objectives)
+    V_new = informed_decision(team, V_near, Q_rands, heuristic_obj)
 
     return path
 

@@ -1,9 +1,8 @@
 from arr2_epec_cs_ex import *
 import drrt_ao
-
+import heuristic
 
 class RedTeam:
-
     def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius):
         self.graphs_single_robots = graphs_single_robot
         self.obstacles = obstacles
@@ -11,7 +10,6 @@ class RedTeam:
         self.opponent_robots = opponent_robots
         self.team_objectives = team_objectives
         self.radius = radius
-
 
 def initialize(params):
     #assign meaningful names to varialbes
@@ -34,9 +32,11 @@ def initialize(params):
 
     red_team = RedTeam(graphs_single_robot, obstacles, team_robots, opponent_robots, team_objectives, radius)
 
+    heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
+
     # as in initialization - we don't consider opponent robots as obstacles in this phase.
     # we would consider it in play_turn
-    path = drrt_ao.find_path_in_tensor_roadmap(red_team)
+    path = drrt_ao.find_path_in_tensor_roadmap(red_team, heuristic_obj)
 
     #return path
 

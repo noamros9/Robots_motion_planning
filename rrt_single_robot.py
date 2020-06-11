@@ -117,11 +117,10 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
             else:
                 new_point = get_new_point(nn, p, distance_per_edge_limit, d)
             potential_edge = Segment_2(Point_2(nn[0], nn[1]), Point_2(new_point[0], new_point[1]))
-            # potential_edge = Segment_2(Point_2(nn[0], nn[1]), Point_2(p[0], p[1]))
+            d = (ed.transformed_distance(nn, new_point).to_double())**0.5  # returns the true Euclidean distance
             if cd.is_edge_valid(potential_edge):
                 G.add_node(new_point)
-                G.add_edge(nn, new_point)
-                G.add_edge(new_point, nn)
+                G.add_weighted_edges_from([(nn, new_point, d), (new_point, nn, d)])
                 tree.insert(new_point)
 
                 if new_point == end:
@@ -147,11 +146,11 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
                     new_point = get_new_point(nn, p, etha, d)
                 #test whether the edge is collision free (consider both collision with the obstacles, and robot-robot collision)
                 potential_edge = Segment_2(Point_2(nn[0], nn[1]), Point_2(new_point[0], new_point[1]))
+                d = (ed.transformed_distance(nn, new_point).to_double())**0.5  # returns the true Euclidean distance
                 if cd.is_edge_valid(potential_edge):
                     #add node + edge to the graph
                     G.add_node(new_point)
-                    G.add_edge(nn, new_point)
-                    G.add_edge(new_point, nn)
+                    G.add_weighted_edges_from([(nn, new_point, d), (new_point, nn, d)])
 
                     tree.insert(new_point)
                     j += 1
@@ -163,13 +162,16 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     """
     if(nx.has_path(G, begin, end)):
         # print("path found")
-        temp = nx.shortest_path(G, begin, end)
+        #temp = nx.shortest_path(G, begin, end)
+        #tempLen = nx.shortest_path_length(G, begin, end)
+        temp = nx.dijkstra_path(G, begin, end, weight='weight')
         for p in temp:
             path.append([Point_2(p[0], p[1])])
         # print(path)
         t1 = time.perf_counter()
         # print("time:", t1-t0)
     """
+
     return G
 
 

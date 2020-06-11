@@ -1,5 +1,6 @@
 from arr2_epec_cs_ex import *
 import drrt_ao
+import heuristic
 
 class BlueTeam:
 
@@ -10,6 +11,7 @@ class BlueTeam:
         self.opponent_robots = opponent_robots
         self.team_objectives = team_objectives
         self.radius = radius
+
 
 
 def initialize(params):
@@ -30,9 +32,13 @@ def initialize(params):
     # need to be handled later
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
     graphs_single_robot = drrt_ao.initialize(init_time, radius,distance_to_travel, team_robots, team_objectives, obstacles)
-
     blue_team = BlueTeam(graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius)
-    path = drrt_ao.find_path_in_tensor_roadmap(blue_team)
+
+    heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
+
+    # as in initialization - we don't consider opponent robots as obstacles in this phase.
+    # we would consider it in play_turn
+    path = drrt_ao.find_path_in_tensor_roadmap(red_team, heuristic_obj)
     #return path
 
 
