@@ -42,7 +42,8 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
         #in the article it is to consider the point itself too (so the robot might stay in place)
         #need to discuss it
         #N.append(V_near[i])
-        if conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
+        #if conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
+        if True:
             # H is the list of heuristics for each neighbor of the nn
             H = [heuristic.calc_heur(heuristic_obj,\
                     i, V_near[i], neighbor, team.team_objectives[i]) for neighbor in N]
