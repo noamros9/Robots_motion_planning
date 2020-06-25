@@ -38,12 +38,13 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
     G = team.graphs_single_robots
     V_new = [None for i in range(len(G))]
     for i in range(len(G)):
-        N = list(G[i].neighbors(V_near[i])) # A list of all neighbors of V_near in the roadmap + V_near[i]
+        N = list(G[i].neighbors(V_near[i])) # A list of all neighbors of V_near in the roadmap
         #in the article it is to consider the point itself too (so the robot might stay in place)
         #need to discuss it
         #N.append(V_near[i])
-        #if conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
-        if True:
+        if(conversions.point_d_to_point_2(V_near[i]) == team.team_objectives[i]):
+            V_new[i] = V_near[i]
+        elif conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
             # H is the list of heuristics for each neighbor of the nn
             H = [heuristic.calc_heur(heuristic_obj,\
                     i, V_near[i], neighbor, team.team_objectives[i]) for neighbor in N]
@@ -53,36 +54,62 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
     return V_new
 
 
-def find_path_in_tensor_roadmap(team, heuristic_obj):
+def expand_drrtAst(path, team, heuristic_obj, V_last):
+    N = len(team.team_robots)
+    Q_rand = [0 for i in range(N)]
+    V_near = [0 for i in range(N)]
+
+    if V_last == [None for i in range(N)]:
+        # find Q_rand (new random point) in for each single robot
+        for i in range(N):
+            team_members = [team.team_robots[j] for j in range(N) if j != i]
+            Q_rand[i] = find_random_point(team.graphs_single_robots[i], team.obstacles, team_members, team.radius)
+            V_near[i] = path[i].nearest_neighbor(Q_rand[i])
+    else:
+        for i in range(N):
+            Q_rand[i] = conversions.point_2_to_point_d(team.team_objectives[i])
+            V_near = V_last
+
+    V_new = informed_decision(team, V_near, Q_rand, heuristic_obj)
+
+    return V_new
+
+
+def find_path_drrtAst(team, heuristic_obj):
+    path = []
     N = len(team.graphs_single_robots)
     graphs_single_robots = team.graphs_single_robots
     team_robots = team.team_robots
     team_objectives = team.team_objectives
     path = [Dynamic_kd_tree() for i in range(N)]
+    V_last = [None for i in range(N)]
+
     for i in range(N):
         robot_i_x, robot_i_y = conversions.point_2_to_xy(team_robots[i])
-        path[i].insert(Point_d(6, [FT(robot_i_x), FT(robot_i_y), FT(0), FT(0), FT(0), FT(0)])) #inserting the starting position of each robot
-    # find Q_rand (new random point) in for each single robot
-    Q_rands = [0 for i in range(N)]
-    V_near = [0 for i in range(N)]
-    for i in range(N):
-        team_members = [team_robots[j] for j in range(N) if j != i]
-        Q_rands[i] = find_random_point(graphs_single_robots[i], team.obstacles, team_members, team.radius)
-        V_near[i] = path[i].nearest_neighbor(Q_rands[i])
+        robot_in_6d = Point_d(6, [FT(robot_i_x), FT(robot_i_y), FT(0), FT(0), FT(0), FT(0)])
+        path[i].insert(robot_in_6d)  # inserting the starting position of each robot
+        V_last[i] = robot_in_6d
 
-    V_new = informed_decision(team, V_near, Q_rands, heuristic_obj)
+    # in the future it will be time-bound. for now we will let it run
+    num_of_tries = 5
+    while num_of_tries > 0:
+        for i in range(100): #n_it
+            V_last = expand_drrtAst(path, team, heuristic_obj, V_last)
+        num_of_tries-=1
 
     return path
 
-def initialize(init_time, radius,distance_to_travel, team_robots, team_objectives, obstacles):
-    time_left = init_time
-    graphs_single_robot = [0 for i in range(len(team_robots))]
+
+def initialize(team):
+    time_left = team.init_time
+    N = len(team.team_robots)
+    graphs_single_robot = [0 for i in range(N)]
 
     # for now - we don't handle time and bonuses.
     # also - an objective is assigned arbitrarily to a robot
-    for i in range(len(team_robots)):
+    for i in range(N):
         graphs_single_robot[i] = rrt_single_robot.\
-            find_rrt_single_robot_path(time_left, radius, distance_to_travel,\
-            team_robots[i], team_objectives[i], obstacles)
+            find_rrt_single_robot_path(time_left, team.radius, team.distance_to_travel,\
+            team.team_robots[i], team.team_objectives[i], team.obstacles)
 
     return graphs_single_robot

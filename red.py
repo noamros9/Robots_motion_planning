@@ -3,13 +3,19 @@ import drrt_ao
 import heuristic
 
 class RedTeam:
-    def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius):
-        self.graphs_single_robots = graphs_single_robot
-        self.obstacles = obstacles
+    def __init__(self, init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+                       team_objectives, opponent_objectives, obstacles, bonuses):
+        self.graphs_single_robots = []
+        self.init_time = init_time
+        self.distance_to_travel = distance_to_travel
+        self.radius = radius
         self.team_robots = team_robots
         self.opponent_robots = opponent_robots
         self.team_objectives = team_objectives
-        self.radius = radius
+        self.opponent_objectives = opponent_objectives
+        self.obstacles = obstacles
+        self.bonuses = bonuses
+
 
 def initialize(params):
     #assign meaningful names to varialbes
@@ -28,16 +34,12 @@ def initialize(params):
     # for now don't consider opponent objects and bonuses
     # need to be handled later
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
-    graphs_single_robot = drrt_ao.initialize(init_time, radius,distance_to_travel, team_robots, team_objectives, obstacles)
 
-    red_team = RedTeam(graphs_single_robot, obstacles, team_robots, opponent_robots, team_objectives, radius)
-
-    heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
-
-    # as in initialization - we don't consider opponent robots as obstacles in this phase.
-    # we would consider it in play_turn
-    path = drrt_ao.find_path_in_tensor_roadmap(red_team, heuristic_obj)
-
+    red_team = RedTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+                       team_objectives, opponent_objectives, obstacles, bonuses)
+    red_team.graphs_single_robots = drrt_ao.initialize(red_team)
+    red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
+    path = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
     #return path
 
 def play_turn(params):

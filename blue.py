@@ -2,20 +2,24 @@ from arr2_epec_cs_ex import *
 import drrt_ao
 import heuristic
 
-class BlueTeam:
 
-    def __init__(self, graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius):
-        self.graphs_single_robots = graphs_single_robot
-        self.obstacles = obstacles
+class BlueTeam:
+    def __init__(self, init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+                 team_objectives, opponent_objectives, obstacles, bonuses):
+        self.graphs_single_robots = []
+        self.init_time = init_time
+        self.distance_to_travel = distance_to_travel
+        self.radius = radius
         self.team_robots = team_robots
         self.opponent_robots = opponent_robots
         self.team_objectives = team_objectives
-        self.radius = radius
-
+        self.opponent_objectives = opponent_objectives
+        self.obstacles = obstacles
+        self.bonuses = bonuses
 
 
 def initialize(params):
-    #assign meaningful names to varialbes
+    # assign meaningful names to varialbes
     init_time = params[0]
     distance_to_travel = params[1]
     radius = params[2]
@@ -31,15 +35,18 @@ def initialize(params):
     # for now don't consider opponent objects and bonuses
     # need to be handled later
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
-    graphs_single_robot = drrt_ao.initialize(init_time, radius,distance_to_travel, team_robots, team_objectives, obstacles)
-    blue_team = BlueTeam(graphs_single_robot, obstacles, team_robots, opponent_robots,team_objectives, radius)
 
-    heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
+    blue_team = BlueTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+                       team_objectives, opponent_objectives, obstacles, bonuses)
+
+    blue_team.graphs_single_robots = drrt_ao.initialize(blue_team)
+
+    blue_team_heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
 
     # as in initialization - we don't consider opponent robots as obstacles in this phase.
     # we would consider it in play_turn
-    path = drrt_ao.find_path_in_tensor_roadmap(red_team, heuristic_obj)
-    #return path
+    path = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
+    # return path
 
 
 def play_turn(params):
