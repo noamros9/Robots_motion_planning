@@ -100,7 +100,7 @@ def find_path_drrtAst(team, heuristic_obj):
     return path
 
 
-def initialize(team):
+def calculate_consituent_roadmaps(team):
     time_left = team.init_time
     N = len(team.team_robots)
     graphs_single_robot = [0 for i in range(N)]

@@ -39,7 +39,7 @@ def initialize(params):
     blue_team = BlueTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
 
-    blue_team.graphs_single_robots = drrt_ao.initialize(blue_team)
+    blue_team.graphs_single_robots = drrt_ao.calculate_consituent_roadmaps(blue_team)
 
     blue_team_heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
 

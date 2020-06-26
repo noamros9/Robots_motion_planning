@@ -37,7 +37,7 @@ def initialize(params):
 
     red_team = RedTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
-    red_team.graphs_single_robots = drrt_ao.initialize(red_team)
+    red_team.graphs_single_robots = drrt_ao.calculate_consituent_roadmaps(red_team)
     red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
     path = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
     #return path
