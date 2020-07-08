@@ -2,8 +2,9 @@ from arr2_epec_cs_ex import *
 import drrt_ao
 import heuristic
 
+
 class RedTeam:
-    def __init__(self, init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+    def __init__(self, init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses):
         self.graphs_single_robots = []
         self.init_time = init_time
@@ -15,19 +16,24 @@ class RedTeam:
         self.opponent_objectives = opponent_objectives
         self.obstacles = obstacles
         self.bonuses = bonuses
+        self.turn_time = turn_time
+        self.total_time = total_time
 
 
 def initialize(params):
     #assign meaningful names to varialbes
-    init_time = params[0]
-    distance_to_travel = params[1]
-    radius = params[2]
-    team_robots = params[3]
-    opponent_robots = params[4]
-    team_objectives = params[5]
-    opponent_objectives = params[6]
-    obstacles = params[7]
-    bonuses = params[8]
+
+    radius = params[0]
+    turn_time = params[1]
+    init_time = params[2]
+    total_time = params[3]
+    distance_to_travel = params[4]
+    team_robots = params[5]
+    opponent_robots = params[6]
+    team_objectives = params[7]
+    opponent_objectives = params[8]
+    obstacles = params[9]
+    bonuses = params[10]
 
     # create the basic map for the initialization phase. For now, don't consider distance to travel
     # because we don't actually play in this turn
@@ -35,12 +41,13 @@ def initialize(params):
     # need to be handled later
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
 
-    red_team = RedTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+    red_team = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
     red_team.graphs_single_robots = drrt_ao.calculate_consituent_roadmaps(red_team)
     red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
     path = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
-    #return path
+    return path
+
 
 def play_turn(params):
     print(params)

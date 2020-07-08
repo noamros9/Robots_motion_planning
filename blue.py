@@ -20,15 +20,17 @@ class BlueTeam:
 
 def initialize(params):
     # assign meaningful names to varialbes
-    init_time = params[0]
-    distance_to_travel = params[1]
-    radius = params[2]
-    team_robots = params[3]
-    opponent_robots = params[4]
-    team_objectives = params[5]
-    opponent_objectives = params[6]
-    obstacles = params[7]
-    bonuses = params[8]
+    radius = params[0]
+    turn_time = params[1]
+    init_time = params[2]
+    total_time = params[3]
+    distance_to_travel = params[4]
+    team_robots = params[5]
+    opponent_robots = params[6]
+    team_objectives = params[7]
+    opponent_objectives = params[8]
+    obstacles = params[9]
+    bonuses = params[10]
 
     # create the basic map for the initialization phase. For now, don't consider distance to travel
     # because we don't actually play in this turn
@@ -46,7 +48,7 @@ def initialize(params):
     # as in initialization - we don't consider opponent robots as obstacles in this phase.
     # we would consider it in play_turn
     path = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
-    # return path
+    return path
 
 
 def play_turn(params):
