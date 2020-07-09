@@ -33,16 +33,17 @@ def find_random_point(graph_single_robot, obstacles, team_robots, radius):
     return p
 
 
-# informed_decision receives for each robot: nearest neighbor, random point that was chosen, the tensor product and the objective
+# informed_decision
+# receives for each robot: nearest neighbor, random point that was chosen, the tensor product and the objective
 def informed_decision(team, V_near, Q_rand, heuristic_obj):
     G = team.graphs_single_robots
     V_new = [None for i in range(len(G))]
     for i in range(len(G)):
         N = list(G[i].neighbors(V_near[i])) # A list of all neighbors of V_near in the roadmap
-        #in the article it is to consider the point itself too (so the robot might stay in place)
-        #need to discuss it
-        #N.append(V_near[i])
-        if(conversions.point_d_to_point_2(V_near[i]) == team.team_objectives[i]):
+        # in the article it is to consider the point itself too (so the robot might stay in place)
+        # need to discuss it
+        # N.append(V_near[i])
+        if conversions.point_d_to_point_2(V_near[i]) == team.team_objectives[i]:
             V_new[i] = V_near[i]
         elif conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
             # H is the list of heuristics for each neighbor of the nn
@@ -75,29 +76,54 @@ def expand_drrtAst(path, team, heuristic_obj, V_last):
     return V_new
 
 
-def find_path_drrtAst(team, heuristic_obj):
+# look in the tree, for a path that ends with team_objectives
+def connect_to_target(team, tree):
     path = []
+    return path
+
+
+# calculate the cost of the path
+def cost(path):
+    path_cost = 0
+    return path_cost
+
+
+#   dRRT* (G, S, T, nit):
+#       G = team.graphs_single_robots
+#       S = team.team_robots
+#       T = team.team_objectives
+#       nit = will be set manually
+def find_path_drrtAst(team, heuristic_obj):
+
+    n_it = 100  # number of iterations to expand the tree
+    # in the future it will be time-bound. for now we will let it run
+    num_of_tries = 5
+
     N = len(team.graphs_single_robots)
-    graphs_single_robots = team.graphs_single_robots
     team_robots = team.team_robots
-    team_objectives = team.team_objectives
-    path = [Dynamic_kd_tree() for i in range(N)]
-    V_last = [None for i in range(N)]
+
+    # drrt* initialization (line 1 of drrt* algorithm 6)
+    best_path = [None for i in range(N)]
+    tree = [Dynamic_kd_tree() for i in range(N)]
+    v_last = [None for i in range(N)]
 
     for i in range(N):
         robot_i_x, robot_i_y = conversions.point_2_to_xy(team_robots[i])
         robot_in_6d = Point_d(6, [FT(robot_i_x), FT(robot_i_y), FT(0), FT(0), FT(0), FT(0)])
-        path[i].insert(robot_in_6d)  # inserting the starting position of each robot
-        V_last[i] = robot_in_6d
+        tree[i].insert(robot_in_6d)  # inserting the starting position of each robot
+        v_last[i] = robot_in_6d  # initialize v_last to the starting positions
 
-    # in the future it will be time-bound. for now we will let it run
-    num_of_tries = 5
+    # drrt* while loop (line 2 of drrt* algorithm 6)
     while num_of_tries > 0:
-        for i in range(100): #n_it
-            V_last = expand_drrtAst(path, team, heuristic_obj, V_last)
-        num_of_tries-=1
+        for i in range(n_it):
+            v_last = expand_drrtAst(tree, team, heuristic_obj, v_last)
+        num_of_tries -= 1
+        # drrt* path - update best_path if the current path is better (and valid)
+        path = connect_to_target(team, tree)
+        if path and cost(path) < cost(best_path):
+            best_path = path
 
-    return path
+    return best_path
 
 
 def calculate_consituent_roadmaps(team):
