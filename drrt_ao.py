@@ -55,7 +55,35 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
     return V_new
 
 
-def expand_drrtAst(path, team, heuristic_obj, V_last):
+# TO DO
+# return the neighbors, which are adjacent to v_new in G and also been added to tree
+def neighbors(v_new, G, tree):
+    all_neighbors = [None for i in range(len(G))]  # A list of all neighbors of V_new
+    return all_neighbors
+
+
+# TO DO
+# look in the tree, for a path that ends with team_objectives
+def connect_to_target(team, tree):
+    path = []
+    return path
+
+
+# TO DO
+# calculate the cost of the path
+def cost_path(path):
+    cost = 0
+    return cost
+
+
+# TO DO
+# calculate the cost of moving from v to v_new
+def cost_moving(v, v_new):
+    cost = 0
+    return cost
+
+
+def expand_drrtAst(tree, team, heuristic_obj, V_last):
     N = len(team.team_robots)
     Q_rand = [0 for i in range(N)]
     V_near = [0 for i in range(N)]
@@ -65,27 +93,25 @@ def expand_drrtAst(path, team, heuristic_obj, V_last):
         for i in range(N):
             team_members = [team.team_robots[j] for j in range(N) if j != i]
             Q_rand[i] = find_random_point(team.graphs_single_robots[i], team.obstacles, team_members, team.radius)
-            V_near[i] = path[i].nearest_neighbor(Q_rand[i])
+            V_near[i] = tree[i].nearest_neighbor(Q_rand[i])
     else:
         for i in range(N):
             Q_rand[i] = conversions.point_2_to_point_d(team.team_objectives[i])
             V_near = V_last
 
     V_new = informed_decision(team, V_near, Q_rand, heuristic_obj)
+    G = team.graphs_single_robots
+    all_neighbors = neighbors(V_new, G, tree)
+    V_best = all_neighbors.index(min([(cost_path(v) + cost_moving(v, V_new)) for v in all_neighbors]))
+
+    if V_best is None:
+        return None
+    if cost_path(V_new) > cost_path(V_best):
+        return None
+
+    # TO DO - LINES 12-21 OF THE ALGORITHM
 
     return V_new
-
-
-# look in the tree, for a path that ends with team_objectives
-def connect_to_target(team, tree):
-    path = []
-    return path
-
-
-# calculate the cost of the path
-def cost(path):
-    path_cost = 0
-    return path_cost
 
 
 #   dRRT* (G, S, T, nit):
@@ -120,7 +146,7 @@ def find_path_drrtAst(team, heuristic_obj):
         num_of_tries -= 1
         # drrt* path - update best_path if the current path is better (and valid)
         path = connect_to_target(team, tree)
-        if path and cost(path) < cost(best_path):
+        if path and cost_path(path) < cost_path(best_path):
             best_path = path
 
     return best_path
