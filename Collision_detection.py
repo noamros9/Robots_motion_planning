@@ -91,7 +91,7 @@ def check_intersection_against_robots(edges, opponent_robots, radius: FT):
 
 
 #   checks collision of the circle (with center p and radius r) with other team_robots
-def is_point_valid_robot_robot(self, p, team_robots, radius):
+def is_point_valid_robot_robot(p, team_robots, radius):
 
     point_x, point_y = conversions.point_2_to_xy(p)
     for team_robot in team_robots:
@@ -120,3 +120,65 @@ def coupon_collide_robot(coupons, p, r):
         if is_circle_collide_triangle(p, r, coupon):
             return coupon
     return None
+
+
+def on_segment(p, q, r):
+    if r[0] <= max(p[0], q[0]) and r[0] >= min(p[0], q[0]) and r[1] <= max(p[1], q[1]) and r[1] >= min(p[1], q[1]):
+        return True
+    return False
+
+
+def orientation(p, q, r):
+    val = ((q[1] - p[1]) * (r[0] - q[0])) - ((q[0] - p[0]) * (r[1] - q[1]))
+    if val == 0:
+        return 0
+    return 1 if val > 0 else -1
+
+
+# taken from https://kite.com/python/answers/how-to-check-if-two-line-segments-intersect-in-python
+def lines_intersect(p1, q1, p2, q2):
+
+    p1 = [p1.cartesian(0).to_double(), p1.cartesian(1).to_double()]
+    p2 = [p2.cartesian(0).to_double(), p2.cartesian(1).to_double()]
+    q1 = [q1.cartesian(0).to_double(), q1.cartesian(1).to_double()]
+    q2 = [q2.cartesian(0).to_double(), q2.cartesian(1).to_double()]
+
+    o1 = orientation(p1, q1, p2)
+    o2 = orientation(p1, q1, q2)
+    o3 = orientation(p2, q2, p1)
+    o4 = orientation(p2, q2, q1)
+
+    if o1 != o2 and o3 != o4:
+        return True
+
+    if o1 == 0 and on_segment(p1, q1, p2): return True
+    if o2 == 0 and on_segment(p1, q1, q2): return True
+    if o3 == 0 and on_segment(p2, q2, p1): return True
+    if o4 == 0 and on_segment(p2, q2, q1): return True
+
+    return False
+
+
+# checks if there's no collision in the candidate edges
+# need to check 1. the final position is not within radius of another robot
+#               2. no collision during movement
+
+def edges_collision_free(team, a, b):
+    G = team.graphs_single_robots
+    N = len(G)
+
+    # check that the robots in V_new do not collide
+    for i in range(N):
+        for j in range(i+1, N):
+            x_diff = b[i].cartesian(0).to_double() - b[j].cartesian(0).to_double()
+            y_diff = b[i].cartesian(1).to_double() - b[j].cartesian(1).to_double()
+            if (x_diff**2 + y_diff**2)**0.5 < 2 * team.radius.to_double():
+                return False
+
+    # check the edges do not colide (use orientation predicat)
+    for i in range(N):
+        for j in range(i+1, N):
+            if lines_intersect(a[i], b[i], a[j], b[j]):
+                return False
+
+    return True

@@ -8,14 +8,14 @@ class Heuristic():
         self.all_pairs_shortest_paths_per_robot = all_pairs_shortest_paths_per_robot
 
 
-
 def calc_heur(heuristic_obj, i, v_near, neighbor, objective):
     G = heuristic_obj.graphs_single_robot[i]
-    v_near_to_neighbor = G[v_near][neighbor]['weight']
+    v_near_to_neighbor = 0
+    if v_near != neighbor and v_near != None:
+        v_near_to_neighbor = G[v_near][neighbor]['weight']
 
     neighbor_to_objective_path_len = 0
-    objective_6d = conversions.point_2_to_point_d(objective)
-    path = heuristic_obj.all_pairs_shortest_paths_per_robot[i][neighbor][objective_6d]
+    path = heuristic_obj.all_pairs_shortest_paths_per_robot[i][neighbor][objective]
 
     for i in range(1,len(path)):
         neighbor_to_objective_path_len += G[path[i]][path[i - 1]]['weight']

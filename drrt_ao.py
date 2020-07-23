@@ -6,14 +6,15 @@ import Collision_detection
 import conversions
 import random
 import heuristic
+import math
+import G_tensor
 
 
 def find_random_point(graph_single_robot, obstacles, team_robots, radius):
     p = []
-
     cd = Collision_detection.Collision_detector(obstacles, radius)
 
-    #compute a bounding box bounding the C-space
+    # compute a bounding box bounding the C-space
     bbox = rrt_single_robot.calc_bbox(obstacles)
     x_range = (bbox[0].to_double(), bbox[1].to_double())
     y_range = (bbox[2].to_double(), bbox[3].to_double())
@@ -26,7 +27,7 @@ def find_random_point(graph_single_robot, obstacles, team_robots, radius):
         p = Point_d(6, [rand_x, rand_y, FT(0), FT(0), FT(0), FT(0)])
         p_Point_2 = Point_2(rand_x, rand_y)
 
-        if cd.is_point_valid(p_Point_2) and cd.is_point_valid_robot_robot(p_Point_2, team_robots, radius):
+        if cd.is_point_valid(p_Point_2) and Collision_detection.is_point_valid_robot_robot(p_Point_2, team_robots, radius):
             flag = True
             return p
 
@@ -39,27 +40,99 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
     G = team.graphs_single_robots
     V_new = [None for i in range(len(G))]
     for i in range(len(G)):
-        N = list(G[i].neighbors(V_near[i])) # A list of all neighbors of V_near in the roadmap
-        # in the article it is to consider the point itself too (so the robot might stay in place)
-        # need to discuss it
-        # N.append(V_near[i])
-        if conversions.point_d_to_point_2(V_near[i]) == team.team_objectives[i]:
+        N = adj(G[i], V_near[i])  # A list of all neighbors of V_near[i] in the roadmap
+        if V_near[i] == team.team_objectives[i]:
             V_new[i] = V_near[i]
-        elif conversions.point_d_to_point_2(Q_rand[i]) == team.team_objectives[i]: # If we are guiding to a first solution
+        elif Q_rand[i] == team.team_objectives[i]: # If we are guiding to a first solution
             # H is the list of heuristics for each neighbor of the nn
-            H = [heuristic.calc_heur(heuristic_obj,\
-                    i, V_near[i], neighbor, team.team_objectives[i]) for neighbor in N]
+            H = [heuristic.calc_heur(heuristic_obj, i, V_near[i], N[j], team.team_objectives[i]) for j in range(len(N))]
             V_new[i] = N[H.index(min(H))] # V_new will be the neighbor with the smallest heuristic value
         else: # if we are exploring better solutions
             V_new[i] = N[random.randint(0,len(N)-1)] # V_new will be chosen randomly from the neighbors of the nn
     return V_new
 
 
-# TO DO
+# returns a list of all neighbors of a node in the graph (if there are)
+def adj(graph, node, include_self = False):
+    n = []
+    if graph.has_node(node):
+        n = list(graph.neighbors(node))
+    if include_self:
+        n.append(node)
+    return n
+
+
+def is_possible_neighbor(V_new, g_tensor, ID):
+    nodes = g_tensor.configs[ID]['nodes']
+    for i in range(len(V_new)):
+        if nodes[i] != V_new[i] and not g_tensor.G[i].has_edge(nodes[i], V_new[i]):
+            return False
+    return True
+
+
+def all_neighbors_stay_in_objective(V_new, V_last, g_tensor):
+    N = len(g_tensor.G)
+    first = True
+    possible_neighbor_configs = []
+    neighbors = []
+    for i in range(N):
+        if V_last[i] == g_tensor.team.team_objectives[i]:
+            for ID in g_tensor.node_configs[i][V_last[i]]:
+                if is_possible_neighbor(V_new, g_tensor, ID):
+                    if first:
+                        possible_neighbor_configs.append(ID)
+                    else:  # we keep only the configurations which keep all the nodes in place if in objectives
+                        if ID in possible_neighbor_configs:
+                            neighbors.append(ID)
+
+    if len(neighbors) == 0:
+        return possible_neighbor_configs
+    return neighbors
+
+
 # return the neighbors, which are adjacent to v_new in G and also been added to tree
-def neighbors(v_new, G, tree):
-    all_neighbors = [None for i in range(len(G))]  # A list of all neighbors of V_new
-    return all_neighbors
+def neighbors(V_new, g_tensor):
+    N = len(g_tensor.G)
+    possible_neighbor_configs = []
+    for i in range(N):
+        for n in adj(g_tensor.G[i], V_new[i], True):
+            if g_tensor.path[i][0].has_node(n):
+                for ID in g_tensor.node_configs[i][n]:
+                    if is_possible_neighbor(V_new, g_tensor, ID) and ID not in possible_neighbor_configs:
+                        possible_neighbor_configs.append(ID)
+    return possible_neighbor_configs
+
+
+# calculate the cost of the path
+def cost_path(G, start, neighbor):
+    return nx.shortest_path_length(G, start, neighbor, weight='weight')
+
+
+# calculate the cost of moving from v to v_new
+def cost_moving(g_tensor, neighbor, v_new):
+    nodes = g_tensor.configs[neighbor]['nodes']
+    cost = 0
+    for i in range(len(v_new)):
+        if nodes[i] != v_new[i]:
+            cost += g_tensor.G[i][nodes[i]][v_new[i]]['weight']
+    return cost
+
+
+def calculate_V_best(all_neighbors, V_new, g_tensor, team):
+    N = len(V_new)
+    s = [conversions.point_2_to_point_d(team.starting_point[i]) for i in range(N)]
+    num_neighbors = len(all_neighbors)
+    costs = [0 for i in range(num_neighbors)]
+    for i in range(num_neighbors):
+        costs[i] = g_tensor.configs[all_neighbors[i]]['cost']
+        costs[i]+= cost_moving(g_tensor, all_neighbors[i], V_new)
+    best_neighbor_ID = all_neighbors[costs.index(min(costs))]
+    neighbor = g_tensor.configs[best_neighbor_ID]['nodes']
+    if Collision_detection.edges_collision_free(team, neighbor, V_new):
+        V_best = neighbor
+        return V_best, min(costs)
+
+    return None, 0
 
 
 # TO DO
@@ -69,49 +142,60 @@ def connect_to_target(team, tree):
     return path
 
 
-# TO DO
-# calculate the cost of the path
-def cost_path(path):
-    cost = 0
-    return cost
-
-
-# TO DO
-# calculate the cost of moving from v to v_new
-def cost_moving(v, v_new):
-    cost = 0
-    return cost
-
-
-def expand_drrtAst(tree, team, heuristic_obj, V_last):
+# the expansion step
+def expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost):
     N = len(team.team_robots)
     Q_rand = [0 for i in range(N)]
     V_near = [0 for i in range(N)]
-
-    if V_last == [None for i in range(N)]:
+    if V_last == None:
         # find Q_rand (new random point) in for each single robot
         for i in range(N):
             team_members = [team.team_robots[j] for j in range(N) if j != i]
             Q_rand[i] = find_random_point(team.graphs_single_robots[i], team.obstacles, team_members, team.radius)
-            V_near[i] = tree[i].nearest_neighbor(Q_rand[i])
+        V_near = g_tensor.nearest_config(Q_rand)
     else:
-        for i in range(N):
-            Q_rand[i] = conversions.point_2_to_point_d(team.team_objectives[i])
-            V_near = V_last
-
+        Q_rand = team.team_objectives
+        V_near = V_last
     V_new = informed_decision(team, V_near, Q_rand, heuristic_obj)
-    G = team.graphs_single_robots
-    all_neighbors = neighbors(V_new, G, tree)
-    V_best = all_neighbors.index(min([(cost_path(v) + cost_moving(v, V_new)) for v in all_neighbors]))
+
+    all_neighbors = []
+    if V_last != None and True in [V_last[i] == team.team_objectives[i] for i in range(N)]:
+        all_neighbors = all_neighbors_stay_in_objective(V_new, V_last, g_tensor)
+    else:
+        all_neighbors = neighbors(V_new, g_tensor)
+
+    V_best, start_to_V_new_cost = calculate_V_best(all_neighbors, V_new, g_tensor, team)
 
     if V_best is None:
         return None
-    if cost_path(V_new) > cost_path(V_best):
-        return None
 
-    # TO DO - LINES 12-21 OF THE ALGORITHM
+    # check if V_new make the travel cheaper
+    shortest_paths_single_robot = heuristic_obj.all_pairs_shortest_paths_per_robot
+    if not math.isinf(best_path_cost):
+        v_new_to_target_cost = sum([cost_path(g_tensor.G[i], V_new[i],team.team_objectives[i]) \
+                                    for i in range(N)])
+        total_cost_v_new = start_to_V_new_cost + v_new_to_target_cost
+        if total_cost_v_new > best_path_cost:
+            return None
 
-    return V_new
+    v_new_exist = g_tensor.config_by_nodes(V_new)
+    if v_new_exist == -1:   # meaning the configuration V_new is not in the tensor roadmap
+        g_tensor.add_new_config(V_best, V_new)
+    else:
+        g_tensor.rewire(V_best, V_new)
+    for i in range(len(all_neighbors)):
+        if V_new != g_tensor.configs[all_neighbors[i]]['nodes']:
+            g_tensor.rewire(V_new, g_tensor.configs[all_neighbors[i]]['nodes'])
+
+    # if we made progress
+    heuristic_V_new = sum([heuristic.calc_heur(heuristic_obj, i, None, V_new[i], team.team_objectives[i])\
+                           for i in range(N)])
+    heuristic_V_best = sum([heuristic.calc_heur(heuristic_obj, i, None, V_best[i], team.team_objectives[i])\
+                           for i in range(N)])
+    if heuristic_V_new < heuristic_V_best:
+        return V_new
+
+    return None
 
 
 #   dRRT* (G, S, T, nit):
@@ -129,39 +213,43 @@ def find_path_drrtAst(team, heuristic_obj):
     team_robots = team.team_robots
 
     # drrt* initialization (line 1 of drrt* algorithm 6)
-    best_path = [None for i in range(N)]
-    tree = [Dynamic_kd_tree() for i in range(N)]
-    v_last = [None for i in range(N)]
-
-    for i in range(N):
-        robot_i_x, robot_i_y = conversions.point_2_to_xy(team_robots[i])
-        robot_in_6d = Point_d(6, [FT(robot_i_x), FT(robot_i_y), FT(0), FT(0), FT(0), FT(0)])
-        tree[i].insert(robot_in_6d)  # inserting the starting position of each robot
-        v_last[i] = robot_in_6d  # initialize v_last to the starting positions
+    best_path = []
+    best_path_cost = math.inf     # cost of pi_best in the beginning
+    g_tensor = G_tensor.G_tensorMap(N, team_robots, team, heuristic_obj) # initialize the tensorMap
+    V_last = [conversions.point_2_to_point_d(team_robots[i]) for i in range(N)]  # initialize v_last to the starting positions
+    none_cnt = 0
 
     # drrt* while loop (line 2 of drrt* algorithm 6)
+    # TO DO: change it to work by time elapsed
     while num_of_tries > 0:
         for i in range(n_it):
-            v_last = expand_drrtAst(tree, team, heuristic_obj, v_last)
+            V_last = expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost)
         num_of_tries -= 1
+        g_tensor.update_costs()
         # drrt* path - update best_path if the current path is better (and valid)
-        path = connect_to_target(team, tree)
-        if path and cost_path(path) < cost_path(best_path):
-            best_path = path
+        target_config = g_tensor.config_by_nodes(team.team_objectives)
+        if target_config != -1:  # the target configuration exists
+            cost_path_to_target = g_tensor.configs[target_config]['cost']
+            if cost_path_to_target < best_path_cost:
+                best_path_cost = cost_path_to_target
+                best_path = g_tensor.build_path(target_config)
+            V_last = None  # if the time isn't over try to keep exploring the map
 
     return best_path
 
-
+# calculate the RRT for each robot separately
 def calculate_consituent_roadmaps(team):
     time_left = team.init_time
     N = len(team.team_robots)
     graphs_single_robot = [0 for i in range(N)]
+    trees_single_robot = [0 for i in range(N)]
 
     # for now - we don't handle time and bonuses.
     # also - an objective is assigned arbitrarily to a robot
     for i in range(N):
-        graphs_single_robot[i] = rrt_single_robot.\
+        graphs_single_robot[i], trees_single_robot[i] = rrt_single_robot.\
             find_rrt_single_robot_path(time_left, team.radius, team.distance_to_travel,\
             team.team_robots[i], team.team_objectives[i], team.obstacles)
 
-    return graphs_single_robot
+
+    return graphs_single_robot, trees_single_robot

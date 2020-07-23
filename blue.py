@@ -1,18 +1,20 @@
 from arr2_epec_cs_ex import *
 import drrt_ao
 import heuristic
-
+import conversions
 
 class BlueTeam:
     def __init__(self, init_time, distance_to_travel, radius, team_robots, opponent_robots, \
                  team_objectives, opponent_objectives, obstacles, bonuses):
+        self.graphs_single_robots = []
         self.graphs_single_robots = []
         self.init_time = init_time
         self.distance_to_travel = distance_to_travel
         self.radius = radius
         self.team_robots = team_robots
         self.opponent_robots = opponent_robots
-        self.team_objectives = team_objectives
+        self.starting_point = team_robots
+        self.team_objectives = [conversions.point_2_to_point_d(team_objectives[i]) for i in range(len(team_robots))]
         self.opponent_objectives = opponent_objectives
         self.obstacles = obstacles
         self.bonuses = bonuses
@@ -40,9 +42,9 @@ def initialize(params):
 
     blue_team = BlueTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
-
-    blue_team.graphs_single_robots = drrt_ao.calculate_consituent_roadmaps(blue_team)
-
+    graphs_single_robots, trees_singles_robots = drrt_ao.calculate_consituent_roadmaps(blue_team)
+    blue_team.graphs_single_robots = graphs_single_robots
+    blue_team.trees_single_robots = trees_singles_robots
     blue_team_heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
 
     # as in initialization - we don't consider opponent robots as obstacles in this phase.

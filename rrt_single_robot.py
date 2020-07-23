@@ -5,6 +5,7 @@ import time
 import Collision_detection
 import matplotlib.pyplot as plt
 import math
+import conversions
 
 
 class Dynamic_kd_tree:
@@ -61,7 +62,7 @@ def get_new_point(nn, p, etha, d):
     return new_point
 
 
-def generate_path(path, obstacles,  radius, distance_to_travel, start, destination):
+def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
@@ -75,10 +76,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     #We work with 6 dimensional points because of kd-tree compilation issues
     # print(type(start.x()))
     begin = Point_d(6, [start.x(), start.y(), FT(0), FT(0), FT(0), FT(0)])
-    end = Point_d(6, [destination.x(), destination.y(), FT(0), FT(0), FT(0), FT(0)])
     G.add_node(begin)
-
-
     # set up kd tree for Nearest neighbor queries
 
     tree = Dynamic_kd_tree()
@@ -102,8 +100,8 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     j = 0
     done = False
     while(done != True):
-        if(i%100 == 0):
-            #Every 500 iterations attempt to connect the goal configuration
+        if(i%50 == 0):
+            #Every 200 iterations attempt to connect the goal configuration
             # changed the parameter to 100
             # print("Number of valid points sampled:", i)
             i += 1
@@ -158,7 +156,6 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
     # print("done")
     # print("tree size:", j)
     G.add_node(end)
-
     """
     if(nx.has_path(G, begin, end)):
         # print("path found")
@@ -172,7 +169,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, destinati
         # print("time:", t1-t0)
     """
 
-    return G
+    return G, tree
 
 
 def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, objective, obstacles):
