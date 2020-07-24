@@ -205,7 +205,7 @@ def expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost):
 #       nit = will be set manually
 def find_path_drrtAst(team, heuristic_obj):
 
-    n_it = 100  # number of iterations to expand the tree
+    n_it = 150  # number of iterations to expand the tree
     # in the future it will be time-bound. for now we will let it run
     num_of_tries = 5
 
@@ -217,7 +217,6 @@ def find_path_drrtAst(team, heuristic_obj):
     best_path_cost = math.inf     # cost of pi_best in the beginning
     g_tensor = G_tensor.G_tensorMap(N, team_robots, team, heuristic_obj) # initialize the tensorMap
     V_last = [conversions.point_2_to_point_d(team_robots[i]) for i in range(N)]  # initialize v_last to the starting positions
-    none_cnt = 0
 
     # drrt* while loop (line 2 of drrt* algorithm 6)
     # TO DO: change it to work by time elapsed
@@ -232,10 +231,10 @@ def find_path_drrtAst(team, heuristic_obj):
             cost_path_to_target = g_tensor.configs[target_config]['cost']
             if cost_path_to_target < best_path_cost:
                 best_path_cost = cost_path_to_target
-                best_path = g_tensor.build_path(target_config)
+                g_tensor.best_path = g_tensor.build_path(target_config)
             V_last = None  # if the time isn't over try to keep exploring the map
 
-    return best_path
+    return g_tensor
 
 # calculate the RRT for each robot separately
 def calculate_consituent_roadmaps(team):

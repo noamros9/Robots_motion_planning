@@ -18,6 +18,7 @@ class BlueTeam:
         self.opponent_objectives = opponent_objectives
         self.obstacles = obstacles
         self.bonuses = bonuses
+        self.g_tensor = []
 
 
 def initialize(params):
@@ -49,8 +50,8 @@ def initialize(params):
 
     # as in initialization - we don't consider opponent robots as obstacles in this phase.
     # we would consider it in play_turn
-    path = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
-    return path
+    blue_team.g_tensor = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
+    return blue_team.g_tensor.best_path
 
 
 def play_turn(params):

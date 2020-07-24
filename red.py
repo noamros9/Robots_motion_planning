@@ -21,6 +21,7 @@ class RedTeam:
         self.bonuses = bonuses
         self.turn_time = turn_time
         self.total_time = total_time
+        self.g_tensor = []
 
 
 def initialize(params):
@@ -44,8 +45,8 @@ def initialize(params):
     red_team.graphs_single_robots = graphs_single_robots
     red_team.trees_single_robots = trees_singles_robots
     red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
-    path = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
-    return path
+    red_team.g_tensor = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
+    return red_team.g_tensor.best_path
 
 
 def play_turn(params):

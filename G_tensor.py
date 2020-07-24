@@ -16,6 +16,7 @@ class G_tensorMap:
         self.configs = dict()
         self.node_configs = [dict() for i in range(N)]
         self.initialize(N, start)
+        self.best_path = []
 
 
     # g_tensor is the tensor road map, it contains Kd_tree for searching and regular networkxs
@@ -83,15 +84,15 @@ class G_tensorMap:
                 self.configs[bID]['parent'] = aID
                 self.configs[bID]['cost'] = cost_to_b_through_a
 
-
     # given nodes, return the config ID
     # note that we use it only when we know for sure that the configuration exists
     def config_by_nodes(self, nodes):
         for configID in self.configs:
             if self.configs[configID]['nodes'] == nodes:
                 return configID
-        return -1 # not exist
+        return -1  # not exist
 
+    # finds the nearest configuration to a point near which is based on Q_rand
     def nearest_config(self, Q_rand):
         N = len(self.G)
         min_config = -1
@@ -105,7 +106,6 @@ class G_tensorMap:
                 min_cost = cost
                 min_config = configID
         return self.configs[min_config]['nodes']
-
 
     # some costs may be not updated, we update it forward
     def update_costs(self):
@@ -121,7 +121,6 @@ class G_tensorMap:
             total_cost = cost_to_parent + cost_parent_to_config
             if total_cost < curr_cost:
                 self.configs[i]['cost'] = cost_to_parent + cost_parent_to_config
-
 
     # returns the path from the specified configuration to the root
     def build_path(self, config):
