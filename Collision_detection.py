@@ -108,8 +108,11 @@ def is_point_valid_robot_robot(p, team_robots, radius):
 
 
 def is_collision_robot_coupons(coupons, p, radius):
-    cd = Collision_detector(coupons, radius)
-    return not cd.is_point_valid(p)
+    for coupon in coupons:
+        cd = Collision_detector(coupons, radius)
+        if not cd.is_point_valid(p):
+            return True,coupon
+    return False,None
 
     #   checks collision of the circle (with center p and radius r) with coupons
     #   output: if there's a collision with a coupon with positive value - return the coupon. return None otherwise
@@ -118,8 +121,8 @@ def coupon_collide_robot(coupons, p, r):
 
     for coupon in coupons:
         if is_circle_collide_triangle(p, r, coupon):
-            return coupon
-    return None
+            return True,coupon
+    return False,None
 
 
 def on_segment(p, q, r):

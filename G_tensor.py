@@ -100,7 +100,7 @@ class G_tensorMap:
         near = [self.team.trees_single_robots[i].nearest_neighbor(Q_rand[i]) for i in range(N)]
         for configID in self.configs:
             config = self.configs[configID]
-            cost = sum([heuristic.calc_heur(self.heuristic_obj, i, None, config['nodes'][i], near[i]) \
+            cost = sum([heuristic.calc_heur(self.heuristic_obj, i, None, config['nodes'][i], near[i],self.team.bonuses , self.team.radius) \
                         for i in range(N)])
             if cost < min_cost:
                 min_cost = cost

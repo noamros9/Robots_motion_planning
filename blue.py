@@ -4,10 +4,10 @@ import heuristic
 import conversions
 
 class BlueTeam:
-    def __init__(self, init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+    def __init__(self, init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                  team_objectives, opponent_objectives, obstacles, bonuses):
         self.graphs_single_robots = []
-        self.graphs_single_robots = []
+        self.trees_single_robots = []
         self.init_time = init_time
         self.distance_to_travel = distance_to_travel
         self.radius = radius
@@ -18,6 +18,8 @@ class BlueTeam:
         self.opponent_objectives = opponent_objectives
         self.obstacles = obstacles
         self.bonuses = bonuses
+        self.turn_time = turn_time
+        self.total_time = total_time
         self.g_tensor = []
 
 
@@ -41,20 +43,37 @@ def initialize(params):
     # need to be handled later
     # in the initialize phase opponent_robots aren't obstacles (otherwise we can't compute)
 
-    blue_team = BlueTeam(init_time, distance_to_travel, radius, team_robots, opponent_robots, \
+    blue_team = BlueTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
     graphs_single_robots, trees_singles_robots = drrt_ao.calculate_consituent_roadmaps(blue_team)
     blue_team.graphs_single_robots = graphs_single_robots
     blue_team.trees_single_robots = trees_singles_robots
     blue_team_heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
-
-    # as in initialization - we don't consider opponent robots as obstacles in this phase.
-    # we would consider it in play_turn
     blue_team.g_tensor = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
+    params[11].append(blue_team)
     return blue_team.g_tensor.best_path
 
 
 def play_turn(params):
-    #print(params)
-    params[0].append([Point_2(5,5), Point_2(5, 8), Point_2(5, 10)])
-    params[0].append([Point_2(5, 10), Point_2(5, 13), Point_2(5, 15)])
+    team_status = params[1]
+    opponent_status = params[2]
+    bonuses = params[3]
+    data = params[4]
+    remaining_time = params[5]
+    blue_team = data[0]
+    d = 0
+    k = 0
+    while d <= blue_team.distance_to_travel and k < len(blue_team.g_tensor.best_path):
+        for i in range(len(blue_team.team_robots)):
+            d += (((conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k - 1][i])).x().to_double() -
+                   (conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k][i])).x().to_double()) ** 2 +
+                  ((conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k - 1][i])).y().to_double() -
+                   (conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k][i])).y().to_double()) ** 2) ** 0.5
+        k += 1
+    i = 0
+    path = [blue_team.g_tensor.best_path[i] for i in range(k)]
+    for i in range(len(path)):
+        path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(path[i]))]
+    params[0].extend(path)
+    if remaining_time < blue_team.turn_time:
+        blue_team.turn_time = remaining_time

@@ -1,5 +1,6 @@
 import time
 
+from PyQt5.QtGui import QColor
 from arr2_epec_cs_ex import *
 from conversions import point_2_to_xy, tuples_list_to_polygon_2, polygon_2_to_tuples_list
 import Collision_detection
@@ -12,7 +13,7 @@ import math
 from typing import List
 
 colors = [Qt.yellow, Qt.green, Qt.red, Qt.blue, Qt.magenta]
-OBJECTIVE_RADIUS = 0.1
+OBJECTIVE_RADIUS_SCALE = 0.1
 
 
 class Scene():
@@ -67,26 +68,21 @@ class Scene():
         self.gui.set_label(2, "Blue team score: 0")
         self.gui.set_label(3, "Remaining game time: ")
         self.gui.set_label(4, "Remaining turn time: ")
+        self.gui.set_progressbar_value(0, 0)
 
     def draw_scene(self):
         self.gui.empty_queue()
         self.gui.clear_scene()
         self.gui_robots = []
-        for robot in self.red_robots:
-            self.gui_red_robots.append(
-                self.gui.add_disc_robot(self.R.to_double(), *point_2_to_xy(robot[0]), fill_color=Qt.red))
-        for robot in self.blue_robots:
-            self.gui_blue_robots.append(
-                self.gui.add_disc_robot(self.R.to_double(), *point_2_to_xy(robot[0]), fill_color=Qt.blue))
-        for objective in self.red_objectives:
-            self.gui_objectives.append(
-                self.gui.add_disc(OBJECTIVE_RADIUS, *point_2_to_xy(objective), fill_color=Qt.red))
-        for objective in self.blue_objectives:
-            self.gui_objectives.append(
-                self.gui.add_disc(OBJECTIVE_RADIUS, *point_2_to_xy(objective), fill_color=Qt.blue))
         for obstacle in self.obstacles:
             self.gui_obstacles.append(
                 self.gui.add_polygon([point_2_to_xy(p) for p in obstacle.vertices()], Qt.darkGray))
+        for robot in self.red_robots:
+            self.gui_red_robots.append(
+                self.gui.add_disc_robot(self.R.to_double(), *point_2_to_xy(robot[0]), fill_color=QColor(Qt.red).lighter(130)))
+        for robot in self.blue_robots:
+            self.gui_blue_robots.append(
+                self.gui.add_disc_robot(self.R.to_double(), *point_2_to_xy(robot[0]), fill_color=QColor(Qt.blue).lighter(130)))
         for bonus in self.bonuses:
             p = self.gui.add_polygon([point_2_to_xy(p) for p in bonus[0].vertices()], Qt.yellow)
             fp = next(bonus[0].vertices())
@@ -94,6 +90,13 @@ class Scene():
             y = fp.y().to_double()
             t = self.gui.add_text(str(bonus[1]), x, y, 1)
             self.gui_bonuses.append((p, t))
+        for objective in self.red_objectives:
+            self.gui_objectives.append(
+                self.gui.add_disc(self.R.to_double(), *point_2_to_xy(objective), fill_color=Qt.transparent, line_color=QColor(Qt.red).darker(130)))
+        for objective in self.blue_objectives:
+            self.gui_objectives.append(
+                self.gui.add_disc(self.R.to_double(), *point_2_to_xy(objective), fill_color=Qt.transparent, line_color=QColor(Qt.blue).darker(130)))
+        self.gui.redraw()
 
     def load_scene(self, filename):
         scene = read_input.read_scene(filename)
@@ -193,12 +196,13 @@ class Scene():
                                 else:
                                     self.blue_score += bonus[1]
                                 robots[i][1] += bonus[1]
-                                gui_robots[i].set_text(str(int(robots[i][1])))
                                 bonus[1] = 0
                                 bonus_anims.append(
                                     self.gui.visibility_animation(self.gui_bonuses[expanded_bonus[1]][0], False))
                                 bonus_anims.append(
                                     self.gui.visibility_animation(self.gui_bonuses[expanded_bonus[1]][1], False))
+                                bonus_anims.append(
+                                    self.gui.text_animation(gui_robots[i], int(robots[i][1])))
 
                 # Queue animations
                 for i in range(len(robots)):
@@ -209,7 +213,10 @@ class Scene():
                     anims.append(self.gui.linear_translation_animation
                                  (gui_robots[i], *point_2_to_xy(edge.source()), *point_2_to_xy(edge.target())
                                                                               , duration=2000/len(self.path)))
-                anim = self.gui.parallel_animation(*anims)
+
+                anim = self.gui.value_animation(self.gui.progressBars[0], int(100*(d+s)/self.D), (100*d/self.D),
+                                                duration=2000 / len(self.path))
+                anim = self.gui.parallel_animation(*anims, anim)
                 self.gui.queue_animation(anim)
                 anim = self.gui.parallel_animation(*bonus_anims)
                 self.gui.queue_animation(anim)
@@ -260,7 +267,6 @@ class Scene():
             potential_scores.append(score)
         min_score = min(potential_scores)
         return min_score
-        # TODO normalize?
 
     def determine_winner(self):
         print("Calculating final score for each team")

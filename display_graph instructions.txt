@@ -1,0 +1,5 @@
+Under game.py Uncomment lines 142-143 to display the red player's graph after preprocessing is done,
+or lines 236-237 to display the red player's graph after every turn. Adjust where the graph is stored and modify the display_graph function (starting at line 117) for your graph if needed.
+
+Note - Trying to draw a graph with too many edges can take a lot of time and may cause the program to become unresponsive.
+Usage of manual turns mode is recommended.

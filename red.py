@@ -46,10 +46,30 @@ def initialize(params):
     red_team.trees_single_robots = trees_singles_robots
     red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
     red_team.g_tensor = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
+    params[11].append(red_team)
     return red_team.g_tensor.best_path
 
 
 def play_turn(params):
-    print(params)
-    params[0].append([Point_2(5,5), Point_2(5, 8), Point_2(5, 10)])
-    params[0].append([Point_2(5, 10), Point_2(5, 13), Point_2(5, 15)])
+    team_status = params[1]
+    opponent_status = params[2]
+    bonuses = params[3]
+    data = params[4]
+    remaining_time = params[5]
+    red_team = data[0]
+    d = 0
+    k = 1
+    while d <= red_team.distance_to_travel and k < len(red_team.g_tensor.best_path):
+        for i in range(len(red_team.team_robots)):
+            d += (((conversions.point_d_to_point_2(red_team.g_tensor.best_path[k-1][i])).x().to_double() -
+                   (conversions.point_d_to_point_2(red_team.g_tensor.best_path[k][i])).x().to_double())**2 +
+                  ((conversions.point_d_to_point_2(red_team.g_tensor.best_path[k - 1][i])).y().to_double() -
+                   (conversions.point_d_to_point_2(red_team.g_tensor.best_path[k][i])).y().to_double())**2) ** 0.5
+        k += 1
+    i = 0
+    path = [red_team.g_tensor.best_path[i] for i in range(k)]
+    for i in range(len(path)):
+        path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(path[i]))]
+    params[0].extend(path)
+    if remaining_time < red_team.turn_time:
+        red_team.turn_time = remaining_time

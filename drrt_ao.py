@@ -45,7 +45,7 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
             V_new[i] = V_near[i]
         elif Q_rand[i] == team.team_objectives[i]: # If we are guiding to a first solution
             # H is the list of heuristics for each neighbor of the nn
-            H = [heuristic.calc_heur(heuristic_obj, i, V_near[i], N[j], team.team_objectives[i]) for j in range(len(N))]
+            H = [heuristic.calc_heur(heuristic_obj, i, V_near[i], N[j], team.team_objectives[i],team.bonuses,team.radius) for j in range(len(N))]
             V_new[i] = N[H.index(min(H))] # V_new will be the neighbor with the smallest heuristic value
         else: # if we are exploring better solutions
             V_new[i] = N[random.randint(0,len(N)-1)] # V_new will be chosen randomly from the neighbors of the nn
@@ -188,9 +188,9 @@ def expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost):
             g_tensor.rewire(V_new, g_tensor.configs[all_neighbors[i]]['nodes'])
 
     # if we made progress
-    heuristic_V_new = sum([heuristic.calc_heur(heuristic_obj, i, None, V_new[i], team.team_objectives[i])\
+    heuristic_V_new = sum([heuristic.calc_heur(heuristic_obj, i, None, V_new[i], team.team_objectives[i],team.bonuses,team.radius)\
                            for i in range(N)])
-    heuristic_V_best = sum([heuristic.calc_heur(heuristic_obj, i, None, V_best[i], team.team_objectives[i])\
+    heuristic_V_best = sum([heuristic.calc_heur(heuristic_obj, i, None, V_best[i], team.team_objectives[i],team.bonuses,team.radius)\
                            for i in range(N)])
     if heuristic_V_new < heuristic_V_best:
         return V_new
@@ -250,5 +250,9 @@ def calculate_consituent_roadmaps(team):
             find_rrt_single_robot_path(time_left, team.radius, team.distance_to_travel,\
             team.team_robots[i], team.team_objectives[i], team.obstacles)
 
-
+    #for i in range(N):
+     #   tuplst = conversions.polygon_2_to_tuples_list(team.bonuses[i][0])
+      #  for j in range(3):
+       #    graphs_single_robot[i].add_node(conversions.point_2_to_point_d(conversions.xy_to_point_2(tuplst[j][0],tuplst[j][1])))
+        #   trees_single_robot[i].insert(conversions.point_2_to_point_d(conversions.xy_to_point_2(tuplst[j][0],tuplst[j][1])))
     return graphs_single_robot, trees_single_robot

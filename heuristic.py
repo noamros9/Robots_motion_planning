@@ -1,5 +1,6 @@
 from arr2_epec_cs_ex import *
 import networkx as nx
+import Collision_detection
 import conversions
 
 class Heuristic():
@@ -8,11 +9,16 @@ class Heuristic():
         self.all_pairs_shortest_paths_per_robot = all_pairs_shortest_paths_per_robot
 
 
-def calc_heur(heuristic_obj, i, v_near, neighbor, objective):
+def calc_heur(heuristic_obj, i, v_near, neighbor, objective,coupons,r):
     G = heuristic_obj.graphs_single_robot[i]
     v_near_to_neighbor = 0
     if v_near != neighbor and v_near != None:
-        v_near_to_neighbor = G[v_near][neighbor]['weight']
+        coupcord = [coupon[0] for coupon in coupons]
+        tup = Collision_detection.is_collision_robot_coupons(coupcord, conversions.point_d_to_point_2(v_near), r)
+        if tup[0] == True:
+            v_near_to_neighbor = G[v_near][neighbor]['weight'] #- tup[1][1]*1000
+        else:
+            v_near_to_neighbor = G[v_near][neighbor]['weight']
 
     neighbor_to_objective_path_len = 0
     path = heuristic_obj.all_pairs_shortest_paths_per_robot[i][neighbor][objective]

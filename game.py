@@ -1,12 +1,15 @@
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
+from PyQt5.QtWidgets import QFileDialog
 from arr2_epec_cs_ex import *
 import time
 import importlib
-from gui.gui import GUI, QtCore, QtGui, QtWidgets, Qt, QPointF
+from importlib import util
+from gui.gui import GUI, QtCore, QtGui, QtWidgets, Qt, QPointF, QGraphicsLineItem
 import Collision_detection
 from Scene import Scene
 import copy_list
 import traceback
+
 
 
 class WorkerSignals(QObject):
@@ -70,7 +73,9 @@ def initialize():
         team_objectives = scene.blue_objectives
         opponent_objectives = scene.red_objectives
         data = scene.blue_data
-    gp = importlib.import_module(path_name)
+    spec = importlib.util.spec_from_file_location(path_name, path_name)
+    gp = util.module_from_spec(spec)
+    spec.loader.exec_module(gp)
     params = [
         scene.R,
         scene.turn_time,
@@ -98,16 +103,27 @@ def initialize():
     worker.signals.finished.connect(preprocess)
     global t
     t = scene.preprocess_time
-    countdown()
+    preprocess_countdown()
     global timer
     timer = QTimer()
     timer.setInterval(100)
-    timer.timeout.connect(countdown)
+    timer.timeout.connect(preprocess_countdown)
     timer.start()
     global t0
     t0 = time.perf_counter()
     threadpool.start(worker)
 
+# for debugging
+def display_graph(G, n):
+    colors = [Qt.green, Qt.magenta, Qt.darkYellow]
+    for item in gui.scene.items():
+        if isinstance(item, QGraphicsLineItem):
+            gui.scene.removeItem(item)
+    for edge in list(G.edges):
+        for i in range(n):
+            s = (edge[0][i*2].to_double(), edge[0][i*2+1].to_double())
+            t = (edge[1][i*2].to_double(), edge[1][i*2+1].to_double())
+            gui.add_segment(*s, *t, line_color=colors[i % len(colors)])
 
 def preprocess():
     global game_over
@@ -122,6 +138,9 @@ def preprocess():
         gui.set_label(3, "Game ended")
         gui.set_label(4, "Player " + str((scene.turn + 1) % 2 + 1) + " wins!")
     else:
+        # Uncomment to display the graph after pre-processing
+        # G = scene.red_data[-5] # change this to where the graph is stored
+        # display_graph(G, 1) # change "1" to the (effective) dimension of the points in the graph divided by 2
         scene.turn += 1
         print("Initializing done for player", 2 - (scene.turn % 2))
         if scene.turn < 0:
@@ -140,7 +159,6 @@ def play_turn():
     if scene.check_win_condition():
         game_over = True
         gui.set_label(3, "Game ended")
-        gui.set_label(4, "")
         return
     if scene.total_time < 0 or (scene.total_time < scene.turn_time and (scene.turn % 2) == 1):
         # Tie breaker
@@ -168,13 +186,16 @@ def play_turn():
         opponent_robots = scene.red_robots
         data = scene.blue_data
 
-    gp = importlib.import_module(path_name)
+    spec = importlib.util.spec_from_file_location(path_name, path_name)
+    gp = util.module_from_spec(spec)
+    spec.loader.exec_module(gp)
     params = [scene.path]
 
     params.extend([copy_list.copy_robots(team_robots),
                    copy_list.copy_robots(opponent_robots),
                    copy_list.copy_bonuses(scene.bonuses),
-                   data])
+                   data,
+                   scene.total_time])
     print("Player " + str(scene.turn % 2 + 1) + " turn started")
     worker = Worker(gp.play_turn, params)
     worker.signals.finished.connect(process_turn)
@@ -204,25 +225,54 @@ def process_turn():
         gui.set_label(3, "Game ended")
         gui.set_label(4, "Player " + str((scene.turn + 1) % 2 + 1) + " wins!")
     else:
-        scene.total_time -= max(turn_time, 1.0)
+        scene.total_time -= max(turn_time, 3.0)
         scene.process_turn()
         print("Done processing turn for player", (scene.turn % 2) + 1)
         animate_moves()
-    if scene.turn % 2 == 1:
+    if scene.turn % 2 == 0:
         gui.set_label(1, "Red team score: " + str(scene.red_score))
+        # Uncomment to display the graph after each turn
+        # G = scene.red_data[-5] # change this to where the graph is stored
+        # display_graph(G, 1) # change "1" to the (effective) dimension of the points in the graph divided by 2
     else:
         gui.set_label(2, "Blue team score: " + str(scene.blue_score))
 
 
+def getfile():
+    dlg = QFileDialog()
+    dlg.setFileMode(QFileDialog.AnyFile)
+    if dlg.exec_():
+        filenames = dlg.selectedFiles()
+        return filenames[0]
+
+def set_scene_file():
+    s = getfile()
+    if s:
+        gui.set_field(0, s)
+
+def set_red_file():
+    s = getfile()
+    if s:
+        gui.set_field(1, s)
+
+def set_blue_file():
+    s = getfile()
+    if s:
+        gui.set_field(2, s)
+
 def animate_moves():
     gui.play_queue()
-
 
 def countdown():
     global t
     t = max(0, t - 0.1)
     gui.set_label(4, "Remaining turn time: " + str(round(t, 2)))
+    gui.set_label(3, "Remaining game time: " + str(round(scene.total_time - scene.turn_time + t, 2)))
 
+def preprocess_countdown():
+    global t
+    t = max(0, t - 0.1)
+    gui.set_label(4, "Remaining pre-processing time: " + str(round(t, 2)))
 
 def enable_advance():
     gui.set_button_text(2, "Advance")
@@ -248,7 +298,7 @@ if __name__ == "__main__":
         autoplay = True
     t0 = None
     t = None
-    timer = None
+    timer = QTimer()
     game_over = False
     app = QtWidgets.QApplication(sys.argv)
     gui = GUI()
@@ -258,22 +308,21 @@ if __name__ == "__main__":
     gui.set_field(1, red_file)
     gui.set_field(2, blue_file)
     gui.set_logic(0, set_up_scene)
+    gui.set_logic(3, set_scene_file)
+    gui.set_logic(4, set_red_file)
+    gui.set_logic(5, set_blue_file)
     gui.set_button_text(0, "Load scene")
     gui.set_button_text(1, "Unavailable")
     gui.set_button_text(2, "Unavailable")
-    # gui.set_button_text(2, "Animate moves")
-    # gui.set_logic(2, animate_moves)
-    gui.set_button_text(3, "Unused")
-    # gui.set_logic(4, is_path_valid)
-    gui.set_button_text(4, "Unused")
-    gui.set_button_text(5, "Unused")
-    gui.set_button_text(6, "Unused")
-    gui.set_button_text(7, "------------------------------------------------------------------")
+    gui.set_button_text(3, "...")
+    gui.set_button_text(4, "...")
+    gui.set_button_text(5, "...")
     gui.set_label(0, "Turn: -")
     gui.set_label(1, "Red team score: 0")
     gui.set_label(2, "Blue team score: 0")
     gui.set_label(3, "Remaining game time: ")
     gui.set_label(4, "Remaining turn time: ")
+    gui.set_label(5, "Remaining travel distance: ")
     # gui.set_animation_finished_action(lambda: None)
     threadpool = QtCore.QThreadPool()
     gui.MainWindow.show()
