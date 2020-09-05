@@ -2,6 +2,7 @@ from arr2_epec_cs_ex import *
 import drrt_ao
 import heuristic
 import conversions
+from walk_path import walk_best_path
 
 class BlueTeam:
     def __init__(self, init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
@@ -61,19 +62,8 @@ def play_turn(params):
     data = params[4]
     remaining_time = params[5]
     blue_team = data[0]
-    d = 0
-    k = 0
-    while d <= blue_team.distance_to_travel and k < len(blue_team.g_tensor.best_path):
-        for i in range(len(blue_team.team_robots)):
-            d += (((conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k - 1][i])).x().to_double() -
-                   (conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k][i])).x().to_double()) ** 2 +
-                  ((conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k - 1][i])).y().to_double() -
-                   (conversions.point_d_to_point_2(blue_team.g_tensor.best_path[k][i])).y().to_double()) ** 2) ** 0.5
-        k += 1
-    i = 0
-    path = [blue_team.g_tensor.best_path[i] for i in range(k)]
-    for i in range(len(path)):
-        path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(path[i]))]
-    params[0].extend(path)
+
     if remaining_time < blue_team.turn_time:
         blue_team.turn_time = remaining_time
+    path = walk_best_path(blue_team)  # walk on the best path and update it's starting points
+    params[0].extend(path)
