@@ -10,7 +10,7 @@ class Heuristic():
         self.all_pairs_shortest_paths_per_robot = all_pairs_shortest_paths_per_robot
 
 
-def calc_heur(heuristic_obj, i, v_near, neighbor, objective,coupons,r):
+def calc_heur(heuristic_obj, i, v_near, neighbor, objective):
     G = heuristic_obj.graphs_single_robot[i]
     v_near_to_neighbor = 0
     if v_near != neighbor and v_near != None:
@@ -28,6 +28,16 @@ def compute_all_pair_shortest_path(graphs_single_robot):
     all_pairs_shortest_paths_per_robot = []
     subgraph_nodes = random.sample(graphs_single_robot.nodes,len(graphs_single_robot.nodes)/10)
     for i in range(len(graphs_single_robot)):
+        for j in range(len(subgraph_nodes)):
+            all_pairs_shortest_paths_per_robot.append(nx.single_source_bellman_ford(graphs_single_robot[i], subgraph_nodes[j], target=None, weight='weight')[1])
+        for j in range(len(graphs_single_robot.nodes)):
+            p = graphs_single_robot.nodes[j]
+            if p in all_pairs_shortest_paths_per_robot:
+                continue
+            else:
+                nn = tree.nearest_neighbor(p)
+                paths =  all_pairs_shortest_paths_per_robot[nn]
+                all_pairs_shortest_paths_per_robot[p] = paths
         all_pairs_shortest_paths_per_robot.append(\
             nx.johnson(graphs_single_robot[i], weight='weight'))
 
