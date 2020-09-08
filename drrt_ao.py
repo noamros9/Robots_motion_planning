@@ -7,6 +7,7 @@ import conversions
 import random
 import heuristic
 import math
+import time
 import G_tensor
 
 
@@ -204,9 +205,6 @@ def expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost):
 #       T = team.team_objectives
 #       nit = will be set manually
 def find_path_drrtAst(team, heuristic_obj):
-
-    n_it = 150  # number of iterations to expand the tree
-    # in the future it will be time-bound. for now we will let it run
     num_of_tries = 5
 
     N = len(team.graphs_single_robots)
@@ -221,8 +219,9 @@ def find_path_drrtAst(team, heuristic_obj):
     # drrt* while loop (line 2 of drrt* algorithm 6)
     # TO DO: change it to work by time elapsed
     while num_of_tries > 0:
-        for i in range(n_it):
+        while t < (team.time - len(team.robots)*5):
             V_last = expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost)
+            t = time.clock()
         num_of_tries -= 1
         g_tensor.update_costs()
         # drrt* path - update best_path if the current path is better (and valid)
