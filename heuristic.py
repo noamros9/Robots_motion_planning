@@ -24,7 +24,7 @@ def calc_heur(heuristic_obj, i, v_near, neighbor, objective):
     return v_near_to_neighbor + neighbor_to_objective_path_len
 
 
-def compute_all_pair_shortest_path(graphs_single_robot):
+def compute_all_pair_shortest_path(graphs_single_robot, trees_single_robot):
     all_pairs_shortest_paths_per_robot = []
     subgraph_nodes = random.sample(graphs_single_robot.nodes,len(graphs_single_robot.nodes)/10)
     for i in range(len(graphs_single_robot)):
@@ -35,7 +35,7 @@ def compute_all_pair_shortest_path(graphs_single_robot):
             if p in all_pairs_shortest_paths_per_robot:
                 continue
             else:
-                nn = tree.nearest_neighbor(p)
+                nn = trees_single_robot[i].nearest_neighbor(p)
                 paths =  all_pairs_shortest_paths_per_robot[nn]
                 all_pairs_shortest_paths_per_robot[p] = paths
         all_pairs_shortest_paths_per_robot.append(\
@@ -44,7 +44,7 @@ def compute_all_pair_shortest_path(graphs_single_robot):
     return all_pairs_shortest_paths_per_robot
 
 
-def makeHeuristic(graphs_single_robot):
+def makeHeuristic(graphs_single_robot, trees_single_robot):
     all_pairs_shortest_paths_per_robot = compute_all_pair_shortest_path(graphs_single_robot)
     heuristic_obj = Heuristic(graphs_single_robot, all_pairs_shortest_paths_per_robot)
 
