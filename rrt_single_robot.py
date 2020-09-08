@@ -62,7 +62,7 @@ def get_new_point(nn, p, etha, d):
     return new_point
 
 
-def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
+def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coupons):
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
@@ -101,13 +101,13 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
     j = 0
     done = False
     while(done != True):
-        if counter > 10:
-             distance_per_edge_limit =  distance_per_edge_limit/2
-             counter = 0
-        if counter <-10:
-             distance_per_edge_limit =  distance_per_edge_limit*2
-             counter = 0
-        if(i%25 == 0):
+        if counter > 100:
+            distance_per_edge_limit = distance_per_edge_limit/FT(2)
+            counter = 0
+        if counter < -100:
+            distance_per_edge_limit = distance_per_edge_limit*FT(2)
+            counter = 0
+        if(i%50 == 0):
             #Every 200 iterations attempt to connect the goal configuration
             # changed the parameter to 100
             # print("Number of valid points sampled:", i)
@@ -116,7 +116,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
             nn = tree.nearest_neighbor(p)
             d = ed.transformed_distance(p, nn)  # returns the true Euclidean distance
             # find the new config at distance eta from nn
-            if (d.to_double()**0.5 < distance_per_edge_limit.to_double()**2):
+            if d.to_double()**0.5 < distance_per_edge_limit.to_double()**2:
                 new_point = p
                 # print("less than etha")
             else:
@@ -127,16 +127,16 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
                 G.add_node(new_point)
                 G.add_weighted_edges_from([(nn, new_point, d), (new_point, nn, d)])
                 tree.insert(new_point)
-                counter-=1
+                counter -= 2
                 if new_point == end:
                     done = True
                     break
             else:
-                counter+=1
+                counter += 1
         else:
-            #sample a random configuration (x,y - positions for the center of the robot)
             rand_x = FT(random.uniform(x_range[0], x_range[1]))
             rand_y = FT(random.uniform(y_range[0], y_range[1]))
+            #sample a random configuration (x,y - positions for the center of the robot)
             p = Point_d(6, [rand_x, rand_y, FT(0), FT(0), FT(0), FT(0)])
 
             #test whether this configuration is valid.
@@ -161,9 +161,9 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
 
                     tree.insert(new_point)
                     j += 1
-                    counter-=1
+                    counter -= 5
                 else:
-                    counter+=1
+                    counter += 1
 
     # print("done")
     # print("tree size:", j)
@@ -183,15 +183,18 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
 
     return G, tree
 
+def coll_with_coupon(coupons,p,r):
+    tup = Collision_detection.is_collision_robot_coupons(coupons, conversions.point_d_to_point_2(p), r)
+    return tup
 
-def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, objective, obstacles):
+def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, objective, obstacles, coupons):
     #Run RRT for a single disk robot
 
     start = robot
     goal = objective
 
     path = []
-    single_robot_graph = generate_path(path, obstacles, radius, distance_to_travel, start, goal)
+    single_robot_graph = generate_path(path, obstacles, radius, distance_to_travel, start, goal, coupons)
     # print("Found path: ", path)
 
     return single_robot_graph

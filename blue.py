@@ -1,6 +1,7 @@
 from arr2_epec_cs_ex import *
 import drrt_ao
 import heuristic
+import utility
 import conversions
 import networkx as nx
 
@@ -42,29 +43,7 @@ def initialize(params):
     # initialize team
     blue_team = BlueTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
-    mn = min(len(team_robots), len(bonuses))
-    for i in range(mn):
-        blue_team.team_objectives[i] = conversions.tup_to_point_d((conversions.polygon_2_to_tuples_list(bonuses[i][0]))[0])
-    graphs_single_robots, trees_singles_robots = drrt_ao.calculate_consituent_roadmaps(blue_team)
-    blue_team.graphs_single_robots = graphs_single_robots
-    blue_team.trees_single_robots = trees_singles_robots
-    blue_team_heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
-    blue_team.g_tensor = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
-    best_path = blue_team.g_tensor.best_path
-    blue_team.team_objectives = [conversions.point_2_to_point_d(team_objectives[i]) for i in range(len(team_robots))]
-    blue_team.team_robots = [conversions.point_d_to_point_2(point) for point in blue_team.g_tensor.best_path[-1]]
-    blue_team.starting_point = blue_team.team_robots
-    graphs_single_robots, trees_singles_robots = drrt_ao.calculate_consituent_roadmaps(blue_team)
-    blue_team.graphs_single_robots = graphs_single_robots
-    blue_team.trees_single_robots = trees_singles_robots
-    #blue_team.graphs_single_robots = nx.compose(graphs_single_robots, blue_team.graphs_single_robots)
-    #for i in range(len(trees_singles_robots[0].buff)):
-    #    blue_team.trees_single_robots[0].insert(trees_singles_robots[0].buff[i])
-    blue_team_heuristic_obj = heuristic.makeHeuristic(blue_team.graphs_single_robots)
-    blue_team.g_tensor = drrt_ao.find_path_drrtAst(blue_team, blue_team_heuristic_obj)
-    best_path.extend(blue_team.g_tensor.best_path)
-    params[11].append([blue_team,best_path])
-    return blue_team.g_tensor.best_path
+    utility.team_init(blue_team, params, team_objectives)
 
 
 def play_turn(params):

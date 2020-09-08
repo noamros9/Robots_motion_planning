@@ -1,8 +1,10 @@
 from arr2_epec_cs_ex import *
 import networkx as nx
+import time
+import random
+import drrt_ao
 import Collision_detection
 import conversions
-import random
 
 class Heuristic():
     def __init__(self, graphs_single_robot, all_pairs_shortest_paths_per_robot):
@@ -26,26 +28,27 @@ def calc_heur(heuristic_obj, i, v_near, neighbor, objective):
 
 def compute_all_pair_shortest_path(graphs_single_robot, trees_single_robot):
     all_pairs_shortest_paths_per_robot = []
-    subgraph_nodes = random.sample(graphs_single_robot.nodes,len(graphs_single_robot.nodes)/10)
+    # subgraph_nodes = random.sample(graphs_single_robot.nodes,len(graphs_single_robot.nodes)/10)
     for i in range(len(graphs_single_robot)):
-        for j in range(len(subgraph_nodes)):
-            all_pairs_shortest_paths_per_robot.append(nx.single_source_bellman_ford(graphs_single_robot[i], subgraph_nodes[j], target=None, weight='weight')[1])
-        for j in range(len(graphs_single_robot.nodes)):
-            p = graphs_single_robot.nodes[j]
-            if p in all_pairs_shortest_paths_per_robot:
-                continue
-            else:
-                nn = trees_single_robot[i].nearest_neighbor(p)
-                paths =  all_pairs_shortest_paths_per_robot[nn]
-                all_pairs_shortest_paths_per_robot[p] = paths
-        all_pairs_shortest_paths_per_robot.append(\
+        all_pairs_shortest_paths_per_robot.append( \
             nx.johnson(graphs_single_robot[i], weight='weight'))
-
+        # for j in range(len(subgraph_nodes)):
+         #   all_pairs_shortest_paths_per_robot.append(nx.single_source_bellman_ford(graphs_single_robot[i], subgraph_nodes[j], target=None, weight='weight')[1])
+        # for j in range(len(graphs_single_robot.nodes)):
+         #   p = graphs_single_robot.nodes[j]
+          #  if p in all_pairs_shortest_paths_per_robot:
+           #     continue
+            #else:
+             #   nn = trees_single_robot[i].nearest_neighbor(p)
+              #  paths =  all_pairs_shortest_paths_per_robot[nn]
+               # all_pairs_shortest_paths_per_robot[p] = paths
     return all_pairs_shortest_paths_per_robot
 
 
 def makeHeuristic(graphs_single_robot, trees_single_robot):
-    all_pairs_shortest_paths_per_robot = compute_all_pair_shortest_path(graphs_single_robot)
+    ts = time.clock()
+    all_pairs_shortest_paths_per_robot = compute_all_pair_shortest_path(graphs_single_robot, trees_single_robot)
     heuristic_obj = Heuristic(graphs_single_robot, all_pairs_shortest_paths_per_robot)
-
+    tf = time.clock()
+    print("Heuristic measurment took: ", tf-ts)
     return heuristic_obj

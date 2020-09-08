@@ -1,6 +1,7 @@
 from arr2_epec_cs_ex import *
 import drrt_ao
 import heuristic
+import utility
 import conversions
 import networkx as nx
 
@@ -43,30 +44,7 @@ def initialize(params):
     # initialize team
     red_team = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
-    mn = min(len(team_robots), len(bonuses))
-    for i in range(mn):
-        red_team.team_objectives[i] = conversions.tup_to_point_d((conversions.polygon_2_to_tuples_list(bonuses[i][0]))[0])
-    graphs_single_robots, trees_singles_robots = drrt_ao.calculate_consituent_roadmaps(red_team)
-    red_team.graphs_single_robots = graphs_single_robots
-    red_team.trees_single_robots = trees_singles_robots
-    red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
-    red_team.g_tensor = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
-    best_path = red_team.g_tensor.best_path
-    red_team.team_objectives = [conversions.point_2_to_point_d(team_objectives[i]) for i in range(len(team_robots))]
-    red_team.team_robots = [conversions.point_d_to_point_2(point) for point in red_team.g_tensor.best_path[-1]]
-    red_team.starting_point = red_team.team_robots
-    graphs_single_robots, trees_singles_robots = drrt_ao.calculate_consituent_roadmaps(red_team)
-    red_team.graphs_single_robots = graphs_single_robots
-    red_team.trees_single_robots = trees_singles_robots
-    #red_team.graphs_single_robots = nx.compose(graphs_single_robots[0], red_team.graphs_single_robots[0])
-    #for i in range(len(trees_singles_robots[0].buff)):
-     #   red_team.trees_single_robots[0].insert(trees_singles_robots[0].buff[i])
-    red_team_heuristic_obj = heuristic.makeHeuristic(red_team.graphs_single_robots)
-    red_team.g_tensor = drrt_ao.find_path_drrtAst(red_team, red_team_heuristic_obj)
-    best_path.extend(red_team.g_tensor.best_path)
-    data = [red_team,best_path]
-    params[11].append(data)
-    return red_team.g_tensor.best_path
+    utility.team_init(red_team, params, team_objectives)
 
 
 def play_turn(params):
