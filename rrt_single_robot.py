@@ -66,7 +66,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
-    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.02)) # added parameter
+    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.1)) # added parameter
 
     #A list of the obstacles, each represented as a CGAL Polygon_2 object
     obstacles = [Polygon_2(obstacle) for obstacle in obstacles]
@@ -96,11 +96,18 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
     #The algorithm:
     lst = []
     ed = Euclidean_distance()
+    counter = 0
     i = 0
     j = 0
     done = False
     while(done != True):
-        if(i%50 == 0):
+        if counter > 10:
+             distance_per_edge_limit =  distance_per_edge_limit/2
+             counter = 0
+        if counter <-10:
+             distance_per_edge_limit =  distance_per_edge_limit*2
+             counter = 0
+        if(i%25 == 0):
             #Every 200 iterations attempt to connect the goal configuration
             # changed the parameter to 100
             # print("Number of valid points sampled:", i)
@@ -120,10 +127,12 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
                 G.add_node(new_point)
                 G.add_weighted_edges_from([(nn, new_point, d), (new_point, nn, d)])
                 tree.insert(new_point)
-
+                counter-=1
                 if new_point == end:
                     done = True
                     break
+            else:
+                counter+=1
         else:
             #sample a random configuration (x,y - positions for the center of the robot)
             rand_x = FT(random.uniform(x_range[0], x_range[1]))
@@ -152,6 +161,9 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end):
 
                     tree.insert(new_point)
                     j += 1
+                    counter-=1
+                else:
+                    counter+=1
 
     # print("done")
     # print("tree size:", j)
