@@ -39,18 +39,14 @@ def remove_crossing_steps(path):
     # to be sure we don't have any collision, we separate each crossing step as follows:
     #   let's say a crosses b - first step: a moves, second step: b moves
     new_path = [list(path[0])]
-    print("{} new path".format(new_path))
     for step_index in range(1, len(path)):
-        print("{} step index".format(step_index))
         new_step = path[step_index-1]
         for i in range(len(path[0])):
             for j in range(0, i):
                 if is_crossing_robot_walks(path, step_index, i, j):
-                    print(new_step)
                     new_path.append(list(new_step))
                     break
             new_step[i] = path[step_index][i]
-        print(new_step)
         new_path.append(list(new_step))
     return new_path
 
@@ -60,9 +56,7 @@ def get_turn_path(team_robots, path_len):
     path = get_path_points(team_robots, path_len)
     for i in range(len(path)):
         path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(team_robots.team_robots))]
-    print(path)
     # path = remove_crossing_steps(path)
-    print(path)
     return path
 
 
@@ -84,7 +78,6 @@ def is_collision_during_movement(opponent_robot, starting_p, ending_p, radius):
     if d <= 2 * radius.to_double():
         if d == 0:
             if np.linalg.norm(p1 - p3) <= 2 * radius.to_double() or np.linalg.norm(p2 - p3) <= 2 * radius.to_double():
-                print("hhhhhhhhhhhhhh")
                 return True
             else:
                 return False
@@ -116,20 +109,23 @@ def is_step_collide(team_robots, cur_team_position, i, k):
     radius = team_robots.radius
     # collision with enemies
     if is_robots_collide(opponent_robots, starting_p, ending_p, radius):
-        print("enemies")
         return True
     robot_friends = [our_robots[j] for j in range(len(our_robots)) if j != i]
-    print("{} our robots".format(our_robots))
-    print("{} robot friends".format(robot_friends))
     # collision with friends
     if is_robots_collide(robot_friends, starting_p, ending_p, radius):
-        print("friends")
         return True
     return False
 
 
-def change_best_path(team_robots, i, k):
-    print("change best path")
+def change_best_path(team_robots, i, k, is_distance_left):
+    # if it's the last point of the path, so we can't change it (we must get there). so we will just wait
+    if k == len(team_robots.g_tensor.best_path) - 1:
+        is_distance_left = False
+        return False
+    # change code here
+    is_distance_left = False
+    return False
+    #########################
 
 
 def walk_best_path(team_robots):
@@ -141,9 +137,8 @@ def walk_best_path(team_robots):
     while k < len(team_robots.g_tensor.best_path) and is_distance_left:
         for i in range(len(team_robots.team_robots)):
             if is_step_collide(team_robots, cur_team_position, i, k):
-                change_best_path(team_robots, i, k)
-                is_distance_left = False
-                break
+                if change_best_path(team_robots, i, k, is_distance_left):
+                    break
             d = best_path_step_distance(team_robots, i, k)
             if total_distance + d <= team_robots.distance_to_travel:
                 cur_team_position[i] = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k][i]))
