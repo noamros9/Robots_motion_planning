@@ -53,25 +53,35 @@ def play_turn(params):
     bonuses = params[3]
     data = params[4]
     remaining_time = params[5]
-    red_team = data[0][0]
+    team = data[0][0]
     best_path = data[0][1]
     if remaining_time < red_team.turn_time:
-        red_team.turn_time = remaining_time
-    # Update_best_path()
+        team.turn_time = remaining_time
+    # update_best_path(team, best_path)
     d = 0
     k = 1
     # Cut path according to distance limitation, k will be the len of the new path
-    while d <= red_team.distance_to_travel and k < len(best_path):
-        for i in range(len(red_team.team_robots)):
+    while d <= team.distance_to_travel and k < len(best_path):
+        for i in range(len(team.team_robots)):
             d += (((conversions.point_d_to_point_2(best_path[k-1][i])).x().to_double() -
                    (conversions.point_d_to_point_2(best_path[k][i])).x().to_double())**2 +
                   ((conversions.point_d_to_point_2(best_path[k - 1][i])).y().to_double() -
                    (conversions.point_d_to_point_2(best_path[k][i])).y().to_double())**2) ** 0.5
         k += 1
-    if d > red_team.distance_to_travel:
+    if d > team.distance_to_travel:
         k -= 1
     i = 0
     path = [best_path[i] for i in range(k)]
     for i in range(len(path)):
         path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(team_status))]
     params[0].extend(path)
+    
+def update_best_paths(team, best_path):
+    coll = find_collisions(team, best_path)
+    for t in coll:
+        path = find_path(tup[0][0], tup[1][0], team)
+        for i in range(tup[1][1], tup[0][1]):
+            best_path.del(i)
+        for i in range(len(path)):
+            best_path.insert(path[-i-1])
+    
