@@ -28,11 +28,41 @@ def get_path_points(team_robots, path_len):
     return turn_points
 
 
+def is_crossing_robot_walks(path, step_index, i, j):
+    # return True if robot i collide with robot j on the road to path[step_index] point, False otherwise
+    return False
+
+
+def remove_crossing_steps(path):
+    # remove crossing steps
+    # we may have steps in the path that robots cross each other
+    # to be sure we don't have any collision, we separate each crossing step as follows:
+    #   let's say a crosses b - first step: a moves, second step: b moves
+    new_path = [list(path[0])]
+    print("{} new path".format(new_path))
+    for step_index in range(1, len(path)):
+        print("{} step index".format(step_index))
+        new_step = path[step_index-1]
+        for i in range(len(path[0])):
+            for j in range(0, i):
+                if is_crossing_robot_walks(path, step_index, i, j):
+                    print(new_step)
+                    new_path.append(list(new_step))
+                    break
+            new_step[i] = path[step_index][i]
+        print(new_step)
+        new_path.append(list(new_step))
+    return new_path
+
+
 def get_turn_path(team_robots, path_len):
     # get the path of each robot we will make in this current turn
     path = get_path_points(team_robots, path_len)
     for i in range(len(path)):
         path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(team_robots.team_robots))]
+    print(path)
+    # path = remove_crossing_steps(path)
+    print(path)
     return path
 
 
@@ -54,7 +84,10 @@ def is_collision_during_movement(opponent_robot, starting_p, ending_p, radius):
     if d <= 2 * radius.to_double():
         if d == 0:
             if np.linalg.norm(p1 - p3) <= 2 * radius.to_double() or np.linalg.norm(p2 - p3) <= 2 * radius.to_double():
+                print("hhhhhhhhhhhhhh")
                 return True
+            else:
+                return False
         else:
             return True
     return False
@@ -69,8 +102,8 @@ def is_robots_collide(robots_arr, starting_p, ending_p, radius):
         if d_diff < 2 * radius.to_double():
             return True
         # check the edges do not collide
-        if is_collision_during_movement(robots_arr[i], starting_p, ending_p, radius):
-            return True
+        # if is_collision_during_movement(robots_arr[i], starting_p, ending_p, radius):
+        #     return True
     return False
 
 
@@ -83,10 +116,14 @@ def is_step_collide(team_robots, cur_team_position, i, k):
     radius = team_robots.radius
     # collision with enemies
     if is_robots_collide(opponent_robots, starting_p, ending_p, radius):
+        print("enemies")
         return True
     robot_friends = [our_robots[j] for j in range(len(our_robots)) if j != i]
+    print("{} our robots".format(our_robots))
+    print("{} robot friends".format(robot_friends))
     # collision with friends
     if is_robots_collide(robot_friends, starting_p, ending_p, radius):
+        print("friends")
         return True
     return False
 
