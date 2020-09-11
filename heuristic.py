@@ -46,9 +46,9 @@ def compute_all_pair_shortest_path(graphs_single_robot, trees_single_robot):
 
 
 def makeHeuristic(graphs_single_robot, trees_single_robot):
-    ts = time.clock()
+    ts = time.time()
     all_pairs_shortest_paths_per_robot = compute_all_pair_shortest_path(graphs_single_robot, trees_single_robot)
     heuristic_obj = Heuristic(graphs_single_robot, all_pairs_shortest_paths_per_robot)
-    tf = time.clock()
+    tf = time.time()
     print("Heuristic measurment took: ", tf-ts)
     return heuristic_obj

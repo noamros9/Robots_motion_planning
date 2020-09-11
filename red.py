@@ -4,6 +4,8 @@ import heuristic
 import utility
 import conversions
 import networkx as nx
+import time
+from walk_path import walk_best_path
 
 
 class RedTeam:
@@ -28,6 +30,7 @@ class RedTeam:
 
 def initialize(params):
 
+    ts = time.time()
     radius = params[0]
     turn_time = params[1]
     init_time = params[2]
@@ -42,22 +45,34 @@ def initialize(params):
     bonuses.sort(key=lambda x: x[1], reverse=True)
 
     # initialize team
-    red_team = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
+    mn = min(len(team_robots), len(bonuses))
+    team_objectives_coup = team_objectives
+    for i in range(mn):
+        tup = conversions.polygon_2_to_tuples_list(bonuses[i][0])[0]
+        team_objectives_coup[i] = conversions.xy_to_point_2(tup[0], tup[1])
+    teamcoup = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
+                       team_objectives_coup, opponent_objectives, obstacles, bonuses)
+    team_robots = team_objectives_coup
+    teamgoal = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
-    utility.team_init(red_team, params, team_objectives)
+    utility.team_init(teamcoup, teamgoal, params, ts)
 
 
 def play_turn(params):
+    t = time.time()
     team_status = params[1]
     opponent_status = params[2]
     bonuses = params[3]
     data = params[4]
     remaining_time = params[5]
-    team = data[0][0]
-    best_path = data[0][1]
-    if remaining_time < red_team.turn_time:
-        team.turn_time = remaining_time
-    # update_best_path(team, best_path)
+    teamcoup = data[0][0]
+    teamgoal = data[0][1]
+    best_path = data[0][2]
+   #path = walk_best_path(team)
+    if remaining_time < teamcoup.turn_time:
+        teamcoup.turn_time = remaining_time
+        teamgoal.turn_time = remaining_time
+    # Update_best_path()
     d = 0
     k = 1
     # Cut path according to distance limitation, k will be the len of the new path
@@ -75,13 +90,3 @@ def play_turn(params):
     for i in range(len(path)):
         path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(team_status))]
     params[0].extend(path)
-    
-def update_best_paths(team, best_path):
-    coll = find_collisions(team, best_path)
-    for t in coll:
-        path = find_path(tup[0][0], tup[1][0], team)
-        for i in range(tup[1][1], tup[0][1]):
-            best_path.del(i)
-        for i in range(len(path)):
-            best_path.insert(path[-i-1])
-    

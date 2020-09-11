@@ -4,6 +4,9 @@ import heuristic
 import utility
 import conversions
 import networkx as nx
+import time
+from walk_path import walk_best_path
+
 
 class BlueTeam:
     def __init__(self, init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
@@ -27,6 +30,7 @@ class BlueTeam:
 
 def initialize(params):
     # assign meaningful names to varialbes
+    ts = time.time()
     radius = params[0]
     turn_time = params[1]
     init_time = params[2]
@@ -41,31 +45,44 @@ def initialize(params):
     bonuses.sort(key=lambda x: x[1], reverse=True)
 
     # initialize team
-    blue_team = BlueTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
+    mn = min(len(team_robots), len(bonuses))
+    team_objectives_coup = [0]*len(team_robots)
+    for i in range(mn):
+        tup = conversions.polygon_2_to_tuples_list(bonuses[i][0])[0]
+        team_objectives_coup[i] = conversions.xy_to_point_2(tup[0], tup[1])
+    teamcoup = BlueTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
+                       team_objectives_coup, opponent_objectives, obstacles, bonuses)
+    team_robots = team_objectives_coup
+    teamgoal = BlueTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives, opponent_objectives, obstacles, bonuses)
-    utility.team_init(blue_team, params, team_objectives)
+    utility.team_init(teamcoup, teamgoal, params, ts)
+
 
 
 def play_turn(params):
+    t = time.time()
     team_status = params[1]
     opponent_status = params[2]
     bonuses = params[3]
     data = params[4]
     remaining_time = params[5]
-    blue_team = data[0][0]
-    best_path = data[0][1]
-    if remaining_time < blue_team.turn_time:
-        blue_team.turn_time = remaining_time
+    teamcoup = data[0][0]
+    teamgoal = data[0][1]
+    best_path = data[0][2]
+    #path = walk_best_path(team)
+    if remaining_time < teamcoup.turn_time:
+        teamcoup.turn_time = remaining_time
+        teamgoal.turn_time = remaining_time
     d = 0
     k = 0
-    while d <= blue_team.distance_to_travel and k < len(best_path):
-        for i in range(len(blue_team.team_robots)):
+    while d <= team.distance_to_travel and k < len(best_path):
+        for i in range(len(team.team_robots)):
             d += (((conversions.point_d_to_point_2(best_path[k - 1][i])).x().to_double() -
                    (conversions.point_d_to_point_2(best_path[k][i])).x().to_double()) ** 2 +
                   ((conversions.point_d_to_point_2(best_path[k - 1][i])).y().to_double() -
                    (conversions.point_d_to_point_2(best_path[k][i])).y().to_double()) ** 2) ** 0.5
         k += 1
-    if d > blue_team.distance_to_travel:
+    if d > team.distance_to_travel:
         k -= 1
     i = 0
     path = [best_path[i] for i in range(k)]

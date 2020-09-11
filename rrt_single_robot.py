@@ -66,7 +66,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
-    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.1)) # added parameter
+    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.02)) # added parameter
 
     #A list of the obstacles, each represented as a CGAL Polygon_2 object
     obstacles = [Polygon_2(obstacle) for obstacle in obstacles]
@@ -102,12 +102,12 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
     done = False
     while(done != True):
         if counter > 100:
-            distance_per_edge_limit = distance_per_edge_limit/FT(2)
+            distance_per_edge_limit = distance_per_edge_limit/FT(1.2)
             counter = 0
         if counter < -100:
-            distance_per_edge_limit = distance_per_edge_limit*FT(2)
+            distance_per_edge_limit = distance_per_edge_limit*FT(1.2)
             counter = 0
-        if(i%50 == 0):
+        if(i%25 == 0):
             #Every 200 iterations attempt to connect the goal configuration
             # changed the parameter to 100
             # print("Number of valid points sampled:", i)
@@ -127,7 +127,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
                 G.add_node(new_point)
                 G.add_weighted_edges_from([(nn, new_point, d), (new_point, nn, d)])
                 tree.insert(new_point)
-                counter -= 2
+                counter -= 1
                 if new_point == end:
                     done = True
                     break
@@ -161,7 +161,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
 
                     tree.insert(new_point)
                     j += 1
-                    counter -= 5
+                    counter -= 1
                 else:
                     counter += 1
 
@@ -183,9 +183,6 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
 
     return G, tree
 
-def coll_with_coupon(coupons,p,r):
-    tup = Collision_detection.is_collision_robot_coupons(coupons, conversions.point_d_to_point_2(p), r)
-    return tup
 
 def find_rrt_single_robot_path(time_left, radius, distance_to_travel, robot, objective, obstacles, coupons):
     #Run RRT for a single disk robot

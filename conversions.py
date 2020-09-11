@@ -14,7 +14,6 @@ def point_d_to_point_2(p):
     p_y = p.cartesian(1)
     return Point_2(p_x, p_y)
 
-
 def point_2_to_point_d(p):
     return Point_d(6, [p.x(), p.y(), FT(0), FT(0), FT(0), FT(0)])
 

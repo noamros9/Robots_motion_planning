@@ -1,5 +1,6 @@
 from arr2_epec_cs_ex import *
 import rrt_single_robot
+import time
 from rrt_single_robot import Dynamic_kd_tree
 import networkx as nx
 import Collision_detection
@@ -7,7 +8,6 @@ import conversions
 import random
 import heuristic
 import math
-import time
 import G_tensor
 
 
@@ -46,7 +46,7 @@ def informed_decision(team, V_near, Q_rand, heuristic_obj):
             V_new[i] = V_near[i]
         elif Q_rand[i] == team.team_objectives[i]: # If we are guiding to a first solution
             # H is the list of heuristics for each neighbor of the nn
-            H = [heuristic.calc_heur(heuristic_obj, i, V_near[i], N[j], team.team_objectives[i],team.bonuses,team.radius) for j in range(len(N))]
+            H = [heuristic.calc_heur(heuristic_obj, i, V_near[i], N[j], team.team_objectives[i]) for j in range(len(N))]
             V_new[i] = N[H.index(min(H))] # V_new will be the neighbor with the smallest heuristic value
         else: # if we are exploring better solutions
             V_new[i] = N[random.randint(0,len(N)-1)] # V_new will be chosen randomly from the neighbors of the nn
@@ -189,9 +189,9 @@ def expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost):
             g_tensor.rewire(V_new, g_tensor.configs[all_neighbors[i]]['nodes'])
 
     # if we made progress
-    heuristic_V_new = sum([heuristic.calc_heur(heuristic_obj, i, None, V_new[i], team.team_objectives[i],team.bonuses,team.radius)\
+    heuristic_V_new = sum([heuristic.calc_heur(heuristic_obj, i, None, V_new[i], team.team_objectives[i])\
                            for i in range(N)])
-    heuristic_V_best = sum([heuristic.calc_heur(heuristic_obj, i, None, V_best[i], team.team_objectives[i],team.bonuses,team.radius)\
+    heuristic_V_best = sum([heuristic.calc_heur(heuristic_obj, i, None, V_best[i], team.team_objectives[i])\
                            for i in range(N)])
     if heuristic_V_new < heuristic_V_best:
         return V_new
@@ -204,8 +204,11 @@ def expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost):
 #       S = team.team_robots
 #       T = team.team_objectives
 #       nit = will be set manually
-def find_path_drrtAst(team, heuristic_obj):
-    num_of_tries = 5
+#       flag == 0 means init search coupon mode, 1 means init search goal mode, 2 means play turn mode
+def find_path_drrtAst(team, heuristic_obj, mode, ts, total_nodes):
+    t1 = time.time()
+    n_it = 100  # number of iterations to expand the tree
+    # in the future it will be time-bound. for now we will let it run
 
     N = len(team.graphs_single_robots)
     team_robots = team.team_robots
@@ -215,14 +218,26 @@ def find_path_drrtAst(team, heuristic_obj):
     best_path_cost = math.inf     # cost of pi_best in the beginning
     g_tensor = G_tensor.G_tensorMap(N, team_robots, team, heuristic_obj) # initialize the tensorMap
     V_last = [conversions.point_2_to_point_d(team_robots[i]) for i in range(N)]  # initialize v_last to the starting positions
-
     # drrt* while loop (line 2 of drrt* algorithm 6)
     # TO DO: change it to work by time elapsed
-    while num_of_tries > 0:
-        while t < (team.time - len(team.robots)*5):
-            V_last = expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost)
-            t = time.clock()
-        num_of_tries -= 1
+    curr_t = time.time()
+    if mode == 2:
+        time_end = ts + team.turn_time
+    else:
+        time_end = ts + team.init_time
+        if mode == 0:
+            nodes = 0
+            for i in range(len(team.team_robots)):
+                nodes += len(team.graphs_single_robots[i].nodes)
+            time_limit = curr_t + (time_end-curr_t)*(nodes/total_nodes)
+        else:
+            time_limit = time_end
+    while curr_t < time_limit - 1:
+        for i in range(n_it):
+            if curr_t < time_limit - 0.75:
+                V_last = expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost)
+            else:
+                break
         g_tensor.update_costs()
         # drrt* path - update best_path if the current path is better (and valid)
         target_config = g_tensor.config_by_nodes(team.team_objectives)
@@ -232,11 +247,14 @@ def find_path_drrtAst(team, heuristic_obj):
                 best_path_cost = cost_path_to_target
                 g_tensor.best_path = g_tensor.build_path(target_config)
             V_last = None  # if the time isn't over try to keep exploring the map
-
+        curr_t = time.time()
+    t2 = time.time()
+    print("drrt mode: ", mode, " took: ", t2 - t1)
     return g_tensor
 
 # calculate the RRT for each robot separately
 def calculate_consituent_roadmaps(team):
+    ts = time.time()
     time_left = team.init_time
     N = len(team.team_robots)
     graphs_single_robot = [0 for i in range(N)]
@@ -247,11 +265,8 @@ def calculate_consituent_roadmaps(team):
     for i in range(N):
         graphs_single_robot[i], trees_single_robot[i] = rrt_single_robot.\
             find_rrt_single_robot_path(time_left, team.radius, team.distance_to_travel,\
-            team.team_robots[i], team.team_objectives[i], team.obstacles)
-
-    #for i in range(N):
-     #   tuplst = conversions.polygon_2_to_tuples_list(team.bonuses[i][0])
-      #  for j in range(3):
-       #    graphs_single_robot[i].add_node(conversions.point_2_to_point_d(conversions.xy_to_point_2(tuplst[j][0],tuplst[j][1])))
-        #   trees_single_robot[i].insert(conversions.point_2_to_point_d(conversions.xy_to_point_2(tuplst[j][0],tuplst[j][1])))
+            team.team_robots[i], team.team_objectives[i], team.obstacles, team.bonuses)
+# Put different arbitrary coupons nodes for each robot
+    tf = time.time()
+    print("RRT measurment took: ", tf - ts)
     return graphs_single_robot, trees_single_robot
