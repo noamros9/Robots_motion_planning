@@ -35,5 +35,8 @@ def team_play_turn(params):
     if remaining_time < teamcoup.turn_time:
         teamcoup.turn_time = remaining_time
         teamgoal.turn_time = remaining_time
-    path = walk_best_path(teamcoup, best_path, opponent_status)
+    teamcoup.g_tensor.best_path = best_path
+    path = walk_best_path(teamcoup, opponent_status)
     params[0].extend(path)
+
+
