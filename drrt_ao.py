@@ -224,7 +224,7 @@ def find_path_drrtAst(team, heuristic_obj, mode, ts, total_nodes):
     if mode == 2:
         time_end = ts + team.turn_time
     else:
-        time_end = ts + team.init_time*0.975
+        time_end = ts + team.init_time*0.98
         if mode == 0:
             nodes = 0
             for i in range(len(team.team_robots)):
@@ -237,9 +237,9 @@ def find_path_drrtAst(team, heuristic_obj, mode, ts, total_nodes):
             time_limit = curr_t + (time_end-curr_t)*percent
         else:
             time_limit = time_end
-    while curr_t < time_limit - 1:
+    while curr_t < time_limit - (2*len(team.team_robots)):
         for i in range(n_it):
-            if curr_t < time_limit - 1:
+            if curr_t < time_limit - (1.5*len(team.team_robots)):
                 V_last = expand_drrtAst(g_tensor, team, heuristic_obj, V_last, best_path_cost)
             else:
                 break
