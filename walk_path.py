@@ -1,7 +1,7 @@
 from arr2_epec_cs_ex import *
 import conversions
 import numpy as np
-
+import random
 
 def best_path_step_distance(team_robots, i, k):
     # distance for the k'th step of robot number i
@@ -18,9 +18,9 @@ def get_path_points(team_robots, path_len):
     # return the path points of the turn
     # remark: we may have fuel only for a part of the the robots, so the other robots will stay in the same place
     step_index = max(path_len)
-    turn_points = [team_robots.g_tensor.best_path[0]]
+    turn_points = [list(team_robots.g_tensor.best_path[0])]
     for j in range(1, step_index+1, 1):
-        point_i = team_robots.g_tensor.best_path[j]
+        point_i = list(team_robots.g_tensor.best_path[j])
         for i in range(len(team_robots.team_robots)):
             if path_len[i] < j:
                 point_i[i] = team_robots.g_tensor.best_path[path_len[i]][i]
@@ -66,7 +66,7 @@ def update_best_path(team_robots, path_len):
     team_robots.g_tensor.best_path = team_robots.g_tensor.best_path[first_index:]
     for i in range(len(team_robots.team_robots)):
         if path_len[i] != first_index:
-            team_robots.g_tensor.best_path[0][i] = team_robots.g_tensor.best_path[0][i+1]
+            team_robots.g_tensor.best_path[0][i] = team_robots.g_tensor.best_path[1][i]
 
 
 def is_collision_during_movement(opponent_robot, starting_p, ending_p, radius):
@@ -93,14 +93,14 @@ def is_robots_collide(robots_arr, starting_p, ending_p, radius):
         d_diff = (x_diff ** 2 + y_diff ** 2) ** 0.5
         # check that the robots in the array do not collide with the final position ending_p
         if d_diff < 2 * radius.to_double():
-            return True
+            return robots_arr[i]
         # check the edges do not collide
         # if is_collision_during_movement(robots_arr[i], starting_p, ending_p, radius):
         #     return True
-    return False
+    return None
 
 
-def is_step_collide(team_robots, cur_team_position, i, k):
+def is_step_collide(team_robots, i, k):
     # return true if the k'th step of robot number i collide/not valid, false otherwise
     starting_p = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k - 1][i]))
     ending_p = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k][i]))
@@ -108,40 +108,65 @@ def is_step_collide(team_robots, cur_team_position, i, k):
     our_robots = team_robots.team_robots
     radius = team_robots.radius
     # collision with enemies
-    if is_robots_collide(opponent_robots, starting_p, ending_p, radius):
-        return True
+    colliding_robot = is_robots_collide(opponent_robots, starting_p, ending_p, radius)
+    if colliding_robot is not None:
+        return colliding_robot
     robot_friends = [our_robots[j] for j in range(len(our_robots)) if j != i]
     # collision with friends
-    if is_robots_collide(robot_friends, starting_p, ending_p, radius):
-        return True
-    return False
+    colliding_robot = is_robots_collide(robot_friends, starting_p, ending_p, radius)
+    if colliding_robot is not None:
+        return colliding_robot
+    return None
 
 
-def change_best_path(team_robots, i, k, is_distance_left):
+def change_best_path(team_robots, i, k, colliding_robot):
     # if it's the last point of the path, so we can't change it (we must get there). so we will just wait
     if k == len(team_robots.g_tensor.best_path) - 1:
-        is_distance_left = False
-        return False
-    # change code here
-    is_distance_left = False
-    return False
+        return True
+    # let's say we are on point a, and we have the following path a -> b -> c where b is colliding with something.
+    # b is approximately in middle of the road from a to c.
+    # we will choose a random point b' and if it doesn't collide we will update the path to a -> b' -> c,
+    # otherwise, we will not move in this turn/
+    radius = team_robots.radius.to_double()
+    cur_point = conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k - 1][i])
+    next_next_point = conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k + 1][i])
+    midx = (cur_point.x().to_double() + next_next_point.x().to_double()) / 2
+    midy = (cur_point.y().to_double() + next_next_point.y().to_double()) / 2
+    for j in range(10):
+        randx = midx + (random.random() - 0.5) * radius
+        randy = midy + (random.random() - 0.5) * radius
+        rand_in_6d = Point_d(6, [FT(randx), FT(randy), FT(0), FT(0), FT(0), FT(0)])
+        orig_copy = team_robots.g_tensor.best_path[k][i]
+        team_robots.g_tensor.best_path[k][i] = rand_in_6d
+        if is_step_collide(team_robots, i, k) is None:
+            print("change",flush=True)
+            return False
+        team_robots.g_tensor.best_path[k][i] = orig_copy
+    print("back to original",flush=True)
+    return True
     #########################
 
 
-def walk_best_path(team_robots):
+def walk_best_path(team_robots, opponent_status):
+    # update opponent robots
+    for i in range(len(team_robots.opponent_robots)):
+        team_robots.opponent_robots[i] = opponent_status[i][0]
     # walk on the best path and update it's starting points
     total_distance, k = 0, 1
     path_len = [0] * len(team_robots.team_robots)
-    cur_team_position = team_robots.team_robots
     is_distance_left = True
-    while k < len(team_robots.g_tensor.best_path) and is_distance_left:
+    is_path_changed = [True] * len(team_robots.team_robots)
+    is_continue = True
+    while k < len(team_robots.g_tensor.best_path) and is_distance_left and is_continue:
         for i in range(len(team_robots.team_robots)):
-            if is_step_collide(team_robots, cur_team_position, i, k):
-                if change_best_path(team_robots, i, k, is_distance_left):
-                    break
+            colliding_robot = is_step_collide(team_robots, i, k)
+            if colliding_robot is not None:
+                if not is_path_changed[i] or change_best_path(team_robots, i, k, colliding_robot):
+                    is_continue = False
+                    continue
+                is_path_changed[i] = False
             d = best_path_step_distance(team_robots, i, k)
             if total_distance + d <= team_robots.distance_to_travel:
-                cur_team_position[i] = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k][i]))
                 total_distance = total_distance + d
                 path_len[i] += 1
             else:
