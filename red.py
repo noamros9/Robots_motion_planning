@@ -5,7 +5,8 @@ import utility
 import conversions
 import networkx as nx
 import time
-from walk_path import walk_best_path
+import Collision_detection
+import random
 
 
 class RedTeam:
@@ -45,11 +46,24 @@ def initialize(params):
     bonuses.sort(key=lambda x: x[1], reverse=True)
 
     # initialize team
+    cd = Collision_detection.Collision_detector(obstacles, radius)
     mn = min(len(team_robots), len(bonuses))
-    team_objectives_coup = team_objectives
+    team_objectives_coup = list(team_objectives)
     for i in range(mn):
-        tup = conversions.polygon_2_to_tuples_list(bonuses[i][0])[0]
-        team_objectives_coup[i] = conversions.xy_to_point_2(tup[0], tup[1])
+        cx = 0
+        cy = 0
+        tups = conversions.polygon_2_to_tuples_list(bonuses[i][0])
+        for j in range(3):
+            cx += tups[j][0]
+            cy += tups[j][1]
+        cx = cx/3
+        cy = cy/3
+        p = conversions.xy_to_point_2(cx, cy)
+        while not cd.is_point_valid(p):
+            rand_x = random.uniform(-radius.to_double(), radius.to_double())
+            rand_y = random.uniform(-radius.to_double(), radius.to_double())
+            p = conversions.xy_to_point_2(cx + rand_x, cy + rand_y)
+        team_objectives_coup[i] = conversions.xy_to_point_2(cx, cy)
     teamcoup = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                        team_objectives_coup, opponent_objectives, obstacles, bonuses)
     team_robots = team_objectives_coup
@@ -59,34 +73,4 @@ def initialize(params):
 
 
 def play_turn(params):
-    t = time.time()
-    team_status = params[1]
-    opponent_status = params[2]
-    bonuses = params[3]
-    data = params[4]
-    remaining_time = params[5]
-    teamcoup = data[0][0]
-    teamgoal = data[0][1]
-    best_path = data[0][2]
-   #path = walk_best_path(team)
-    if remaining_time < teamcoup.turn_time:
-        teamcoup.turn_time = remaining_time
-        teamgoal.turn_time = remaining_time
-    # Update_best_path()
-    d = 0
-    k = 1
-    # Cut path according to distance limitation, k will be the len of the new path
-    while d <= team.distance_to_travel and k < len(best_path):
-        for i in range(len(team.team_robots)):
-            d += (((conversions.point_d_to_point_2(best_path[k-1][i])).x().to_double() -
-                   (conversions.point_d_to_point_2(best_path[k][i])).x().to_double())**2 +
-                  ((conversions.point_d_to_point_2(best_path[k - 1][i])).y().to_double() -
-                   (conversions.point_d_to_point_2(best_path[k][i])).y().to_double())**2) ** 0.5
-        k += 1
-    if d > team.distance_to_travel:
-        k -= 1
-    i = 0
-    path = [best_path[i] for i in range(k)]
-    for i in range(len(path)):
-        path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(team_status))]
-    params[0].extend(path)
+    utility.team_play_turn(params)

@@ -147,6 +147,8 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
                 d = ed.transformed_distance(p, nn) # returns the true Euclidean distance
                 #find the new config at distance eta from nn
                 if(d < etha):
+                    if (d.to_double() < radius.to_double()**0.5):
+                        continue
                     new_point = p
                     # print("less than etha")
                 else:
