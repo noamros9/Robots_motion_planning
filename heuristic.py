@@ -3,6 +3,7 @@ import networkx as nx
 import time
 import random
 import drrt_ao
+import math
 import Collision_detection
 import conversions
 
@@ -21,28 +22,48 @@ def calc_heur(heuristic_obj, i, v_near, neighbor, objective):
     neighbor_to_objective_path_len = 0
     path = heuristic_obj.all_pairs_shortest_paths_per_robot[i][neighbor][objective]
 
-    for i in range(1,len(path)):
+    for i in range(1, len(path)):
         neighbor_to_objective_path_len += G[path[i]][path[i - 1]]['weight']
     return v_near_to_neighbor + neighbor_to_objective_path_len
 
 
 def compute_all_pair_shortest_path(graphs_single_robot, trees_single_robot):
     all_pairs_shortest_paths_per_robot = []
-    # subgraph_nodes = random.sample(graphs_single_robot.nodes,len(graphs_single_robot.nodes)/10)
+    all_pairs_shortest_paths_per_robot_b = [dict() for i in range(len(graphs_single_robot))]
+    subgraph_nodes = [0] * len(graphs_single_robot)
     for i in range(len(graphs_single_robot)):
         all_pairs_shortest_paths_per_robot.append( \
             nx.johnson(graphs_single_robot[i], weight='weight'))
-        # for j in range(len(subgraph_nodes)):
-         #   all_pairs_shortest_paths_per_robot.append(nx.single_source_bellman_ford(graphs_single_robot[i], subgraph_nodes[j], target=None, weight='weight')[1])
-        # for j in range(len(graphs_single_robot.nodes)):
-         #   p = graphs_single_robot.nodes[j]
-          #  if p in all_pairs_shortest_paths_per_robot:
-           #     continue
-            #else:
-             #   nn = trees_single_robot[i].nearest_neighbor(p)
-              #  paths =  all_pairs_shortest_paths_per_robot[nn]
-               # all_pairs_shortest_paths_per_robot[p] = paths
-    return all_pairs_shortest_paths_per_robot
+        subgraph_nodes[i] = random.sample(graphs_single_robot[i].nodes, math.ceil(len(graphs_single_robot[i].nodes)/10))
+        if len(subgraph_nodes[i]) == 1: # single_source_bellman_ford gets stuck on single node graph, so this is an edge case
+            all_pairs_shortest_paths_per_robot_b[i][subgraph_nodes[i][0]] = dict()
+            all_pairs_shortest_paths_per_robot_b[i][subgraph_nodes[i][0]][subgraph_nodes[i][0]] = [subgraph_nodes[i][0]]
+        else:
+            for j in range(len(subgraph_nodes[i])):
+                all_pairs_shortest_paths_per_robot_b[i][subgraph_nodes[i][j]] = nx.single_source_bellman_ford(graphs_single_robot[i], subgraph_nodes[i][j], target=None, weight='weight')[1]
+        while len(all_pairs_shortest_paths_per_robot_b[i]) < len(graphs_single_robot[i].nodes):
+            for node in list(all_pairs_shortest_paths_per_robot_b[i].keys()):
+                N = drrt_ao.adj(graphs_single_robot[i], node)
+                for neighbor in N:
+                    if neighbor in all_pairs_shortest_paths_per_robot_b[i]:
+                        continue
+                    else:
+                        all_pairs_shortest_paths_per_robot_b[i][neighbor] = dict()
+                        for key in all_pairs_shortest_paths_per_robot_b[i][node].keys():
+                            all_pairs_shortest_paths_per_robot_b[i][neighbor][key] = list(all_pairs_shortest_paths_per_robot_b[i][
+                                node][key]) # attaching copy of the list of the neighbor
+                            all_pairs_shortest_paths_per_robot_b[i][neighbor][key].insert(0, neighbor)
+                            if key == neighbor:
+                                all_pairs_shortest_paths_per_robot_b[i][neighbor][key] = all_pairs_shortest_paths_per_robot_b[i][neighbor][key][:1]
+    for i in range(len(graphs_single_robot)): # A check to see the johnson and bellman ford dictionaries are equal
+        for key in all_pairs_shortest_paths_per_robot[i].keys():
+            if key not in all_pairs_shortest_paths_per_robot_b[i]:
+                print("check out")
+            else:
+                for inkey in all_pairs_shortest_paths_per_robot[i][key].keys():
+                    if inkey not in all_pairs_shortest_paths_per_robot_b[i][key]:
+                        print("check in")
+    return all_pairs_shortest_paths_per_robot_b
 
 
 def makeHeuristic(graphs_single_robot, trees_single_robot):

@@ -46,29 +46,12 @@ def initialize(params):
     bonuses.sort(key=lambda x: x[1], reverse=True)
 
     # initialize team
-    cd = Collision_detection.Collision_detector(obstacles, radius)
-    mn = min(len(team_robots), len(bonuses))
-    team_objectives_coup = list(team_objectives)
-    for i in range(mn):
-        cx = 0
-        cy = 0
-        tups = conversions.polygon_2_to_tuples_list(bonuses[i][0])
-        for j in range(3):
-            cx += tups[j][0]
-            cy += tups[j][1]
-        cx = cx/3
-        cy = cy/3
-        p = conversions.xy_to_point_2(cx, cy)
-        while not cd.is_point_valid(p):
-            rand_x = random.uniform(-radius.to_double(), radius.to_double())
-            rand_y = random.uniform(-radius.to_double(), radius.to_double())
-            p = conversions.xy_to_point_2(cx + rand_x, cy + rand_y)
-        team_objectives_coup[i] = conversions.xy_to_point_2(cx, cy)
+    team_objectives_coup = utility.coupon_selection(team_robots, obstacles, radius, bonuses, team_objectives)
     teamcoup = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
-                       team_objectives_coup, opponent_objectives, obstacles, bonuses)
+                        team_objectives_coup, opponent_objectives, obstacles, bonuses)
     team_robots = team_objectives_coup
     teamgoal = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
-                       team_objectives, opponent_objectives, obstacles, bonuses)
+                        team_objectives, opponent_objectives, obstacles, bonuses)
     utility.team_init(teamcoup, teamgoal, params, ts)
 
 
