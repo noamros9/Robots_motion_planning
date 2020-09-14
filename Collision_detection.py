@@ -1,6 +1,8 @@
 from arr2_epec_cs_ex import *
 from circle_triangle_collision import is_circle_collide_triangle
 import conversions
+import numpy as np
+
 
 class Collision_detector:
     cspace = None
@@ -185,3 +187,83 @@ def edges_collision_free(team, a, b):
                 return False
 
     return True
+
+
+def is_collision_n_samples(starting_p, ending_p, opponent_robot, radius, n_samples):
+    # sample n_samples on the line of the robot (starting_p -> ending_p).
+    # return True - at least one point collide with opponent_robot, False otherwise.
+    # remark - collision - collision between robots - between circles - distance < 2 * radius
+    p_start = np.array([starting_p.x().to_double(), starting_p.y().to_double()])
+    p_end = np.array([ending_p.x().to_double(), ending_p.y().to_double()])
+    p_opponent = np.array([opponent_robot.x().to_double(), opponent_robot.y().to_double()])
+    for i in range(n_samples):
+        sample_rate = i / (n_samples - 1)
+        p_sample = p_start + (p_end - p_start) * sample_rate
+        if abs(np.linalg.norm(p_sample - p_opponent)) <= 2 * radius:
+            return True
+    return False
+
+
+def is_collision_during_movement(opponent_robot, starting_p, ending_p, radius):
+    # checks collision between the walk (from starting_p to ending_p) and the opponent_robot
+
+    # p1 = np.array([starting_p.x().to_double(), starting_p.y().to_double()])
+    # p2 = np.array([ending_p.x().to_double(), ending_p.y().to_double()])
+    # p3 = np.array([opponent_robot.x().to_double(), opponent_robot.y().to_double()])
+    # d = abs(np.cross(p2 - p1, p1 - p3) / np.linalg.norm(p2 - p1))
+    # if d <= 2 * radius.to_double():
+    #   return True
+    r = radius.to_double()
+    if is_collision_n_samples(starting_p, ending_p, opponent_robot, r, 10):
+        return True
+    return False
+
+
+def is_robots_collide(robots_arr, starting_p, ending_p, radius):
+    for i in range(len(robots_arr)):
+        x_diff = ending_p.x().to_double() - robots_arr[i].x().to_double()
+        y_diff = ending_p.y().to_double() - robots_arr[i].y().to_double()
+        d_diff = (x_diff ** 2 + y_diff ** 2) ** 0.5
+        # check that the robots in the array do not collide with the final position ending_p
+        if d_diff < 2 * radius.to_double():
+            return robots_arr[i]
+        # check the edges do not collide
+        if is_collision_during_movement(robots_arr[i], starting_p, ending_p, radius):
+            return robots_arr[i]
+    return None
+
+
+def is_step_collide(team_robots, i, k):
+    # return true if the k'th step of robot number i collide/not valid, false otherwise
+    starting_p = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k - 1][i]))
+    ending_p = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k][i]))
+    opponent_robots = team_robots.opponent_robots
+    our_robots = team_robots.team_robots
+    radius = team_robots.radius
+    # collision with enemies
+    colliding_robot = is_robots_collide(opponent_robots, starting_p, ending_p, radius)
+    if colliding_robot is not None:
+        return colliding_robot
+    robot_friends = [our_robots[j] for j in range(len(our_robots)) if j != i]
+    # collision with friends
+    colliding_robot = is_robots_collide(robot_friends, starting_p, ending_p, radius)
+    if colliding_robot is not None:
+        return colliding_robot
+    return None
+
+
+def is_crossing_robot_walks(path, step_index, i, j, radius):
+    # return True if robot i collide with robot j on the road to path[step_index] point, False otherwise
+    # robots move at the same rate, so we will sample points on them and checkc collision for each position
+    start_i = np.array([path[step_index-1][i].x().to_double(), path[step_index-1][i].y().to_double()])
+    end_i = np.array([path[step_index][i].x().to_double(), path[step_index][i].y().to_double()])
+    start_j = np.array([path[step_index-1][j].x().to_double(), path[step_index-1][j].y().to_double()])
+    end_j = np.array([path[step_index][j].x().to_double(), path[step_index][j].y().to_double()])
+    n_samples = 10
+    for i in range(n_samples):
+        sample_rate = i / (n_samples - 1)
+        sample_i = start_i + (end_i - start_i) * sample_rate
+        sample_j = start_j + (end_j - start_j) * sample_rate
+        if abs(np.linalg.norm(sample_i - sample_j)) <= 2 * radius:
+            return True
+    return False

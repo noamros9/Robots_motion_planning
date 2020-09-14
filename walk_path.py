@@ -1,7 +1,8 @@
 from arr2_epec_cs_ex import *
 import conversions
-import numpy as np
 import random
+from Collision_detection import is_step_collide, is_crossing_robot_walks
+
 
 def best_path_step_distance(team_robots, i, k):
     # distance for the k'th step of robot number i
@@ -28,27 +29,38 @@ def get_path_points(team_robots, path_len):
     return turn_points
 
 
-def is_crossing_robot_walks(path, step_index, i, j):
-    # return True if robot i collide with robot j on the road to path[step_index] point, False otherwise
-    return False
+def is_identical_steps(step1, step2):
+    # return True if step1 == step2, False otherwise
+    for i in range(len(step1)):
+        if step1[i].x().to_double() != step2[i].x().to_double() or step1[i].y().to_double() != step2[i].y().to_double():
+            return False
+    return True
 
 
-def remove_crossing_steps(path):
+def remove_identical_steps(path):
+    final_path = [path[0]] + [path[i] for i in range(1, len(path)) if not is_identical_steps(path[i-1], path[i])]
+    return final_path
+
+
+def remove_crossing_steps(path, radius):
     # remove crossing steps
     # we may have steps in the path that robots cross each other
     # to be sure we don't have any collision, we separate each crossing step as follows:
     #   let's say a crosses b - first step: a moves, second step: b moves
+    # remark: we also remove steps that are identical
     new_path = [list(path[0])]
     for step_index in range(1, len(path)):
-        new_step = path[step_index-1]
+        cur_step = path[step_index-1]
         for i in range(len(path[0])):
             for j in range(0, i):
-                if is_crossing_robot_walks(path, step_index, i, j):
-                    new_path.append(list(new_step))
+                if is_crossing_robot_walks(path, step_index, i, j, radius):
+                    new_path.append(cur_step.copy())
                     break
-            new_step[i] = path[step_index][i]
-        new_path.append(list(new_step))
-    return new_path
+            cur_step[i] = path[step_index][i]
+        new_path.append(cur_step.copy())
+    # remove identical steps
+    final_path = remove_identical_steps(new_path)
+    return final_path
 
 
 def get_turn_path(team_robots, path_len):
@@ -56,7 +68,7 @@ def get_turn_path(team_robots, path_len):
     path = get_path_points(team_robots, path_len)
     for i in range(len(path)):
         path[i] = [conversions.point_d_to_point_2(path[i][j]) for j in range(len(team_robots.team_robots))]
-    # path = remove_crossing_steps(path)
+    path = remove_crossing_steps(path, team_robots.radius.to_double())
     return path
 
 
@@ -67,56 +79,6 @@ def update_best_path(team_robots, path_len):
     for i in range(len(team_robots.team_robots)):
         if path_len[i] != first_index:
             team_robots.g_tensor.best_path[0][i] = team_robots.g_tensor.best_path[1][i]
-
-
-def is_collision_during_movement(opponent_robot, starting_p, ending_p, radius):
-    # checks collision between the walk (from starting_p to ending_p) and the opponent_robot
-    p1 = np.array([starting_p.x().to_double(), starting_p.y().to_double()])
-    p2 = np.array([ending_p.x().to_double(), ending_p.y().to_double()])
-    p3 = np.array([opponent_robot.x().to_double(), opponent_robot.y().to_double()])
-    d = abs(np.cross(p2 - p1, p1 - p3) / np.linalg.norm(p2 - p1))
-    if d <= 2 * radius.to_double():
-        if d == 0:
-            if np.linalg.norm(p1 - p3) <= 2 * radius.to_double() or np.linalg.norm(p2 - p3) <= 2 * radius.to_double():
-                return True
-            else:
-                return False
-        else:
-            return True
-    return False
-
-
-def is_robots_collide(robots_arr, starting_p, ending_p, radius):
-    for i in range(len(robots_arr)):
-        x_diff = ending_p.x().to_double() - robots_arr[i].x().to_double()
-        y_diff = ending_p.y().to_double() - robots_arr[i].y().to_double()
-        d_diff = (x_diff ** 2 + y_diff ** 2) ** 0.5
-        # check that the robots in the array do not collide with the final position ending_p
-        if d_diff < 2 * radius.to_double():
-            return robots_arr[i]
-        # check the edges do not collide
-        # if is_collision_during_movement(robots_arr[i], starting_p, ending_p, radius):
-        #     return True
-    return None
-
-
-def is_step_collide(team_robots, i, k):
-    # return true if the k'th step of robot number i collide/not valid, false otherwise
-    starting_p = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k - 1][i]))
-    ending_p = (conversions.point_d_to_point_2(team_robots.g_tensor.best_path[k][i]))
-    opponent_robots = team_robots.opponent_robots
-    our_robots = team_robots.team_robots
-    radius = team_robots.radius
-    # collision with enemies
-    colliding_robot = is_robots_collide(opponent_robots, starting_p, ending_p, radius)
-    if colliding_robot is not None:
-        return colliding_robot
-    robot_friends = [our_robots[j] for j in range(len(our_robots)) if j != i]
-    # collision with friends
-    colliding_robot = is_robots_collide(robot_friends, starting_p, ending_p, radius)
-    if colliding_robot is not None:
-        return colliding_robot
-    return None
 
 
 def change_best_path(team_robots, i, k, colliding_robot):
@@ -133,16 +95,17 @@ def change_best_path(team_robots, i, k, colliding_robot):
     midx = (cur_point.x().to_double() + next_next_point.x().to_double()) / 2
     midy = (cur_point.y().to_double() + next_next_point.y().to_double()) / 2
     for j in range(10):
+        print(team_robots.g_tensor.best_path[k][i])
         randx = midx + (random.random() - 0.5) * radius
         randy = midy + (random.random() - 0.5) * radius
         rand_in_6d = Point_d(6, [FT(randx), FT(randy), FT(0), FT(0), FT(0), FT(0)])
         orig_copy = team_robots.g_tensor.best_path[k][i]
+        print(orig_copy)
         team_robots.g_tensor.best_path[k][i] = rand_in_6d
+        print(team_robots.g_tensor.best_path[k][i])
         if is_step_collide(team_robots, i, k) is None:
-            print("change",flush=True)
             return False
         team_robots.g_tensor.best_path[k][i] = orig_copy
-    print("back to original",flush=True)
     return True
     #########################
 
