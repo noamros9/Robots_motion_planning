@@ -6,10 +6,11 @@ import time
 import conversions
 import Collision_detection
 import random
+import red
 import networkx as nx
 
 
-def coupon_selection(team_robots, obstacles, radius, bonuses, team_objectives):
+def coupon_selection(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, team_objectives, opponent_objectives, obstacles, bonuses):
     cd = Collision_detection.Collision_detector(obstacles, radius)
     mn = min(len(team_robots), len(bonuses))
     team_objectives_coup = list(team_objectives)
@@ -32,9 +33,9 @@ def coupon_selection(team_robots, obstacles, radius, bonuses, team_objectives):
 
 def team_init(teamcoup, teamgoal, params, ts):
     teamcoup.graphs_single_robots, teamcoup.trees_single_robots = drrt_ao.calculate_consituent_roadmaps(teamcoup)
-    teamcoup_heuristic_obj = heuristic.makeHeuristic(teamcoup.graphs_single_robots, teamcoup.trees_single_robots)
+    teamcoup_heuristic_obj = heuristic.makeHeuristic(teamcoup.graphs_single_robots)
     teamgoal.graphs_single_robots, teamgoal.trees_single_robots = drrt_ao.calculate_consituent_roadmaps(teamgoal)
-    teamgoal_heuristic_obj = heuristic.makeHeuristic(teamgoal.graphs_single_robots, teamgoal.trees_single_robots)
+    teamgoal_heuristic_obj = heuristic.makeHeuristic(teamgoal.graphs_single_robots)
     total_nodes = 0
     for i in range(len(teamcoup.team_robots)):
         total_nodes += len(teamcoup.graphs_single_robots[i].nodes) + len(teamgoal.graphs_single_robots[i].nodes)

@@ -46,7 +46,7 @@ def initialize(params):
     bonuses.sort(key=lambda x: x[1], reverse=True)
 
     # initialize team
-    team_objectives_coup = utility.coupon_selection(team_robots, obstacles, radius, bonuses, team_objectives)
+    team_objectives_coup = utility.coupon_selection(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, team_objectives, opponent_objectives, obstacles, bonuses)
     teamcoup = RedTeam(init_time, turn_time, total_time, distance_to_travel, radius, team_robots, opponent_robots, \
                         team_objectives_coup, opponent_objectives, obstacles, bonuses)
     team_robots = team_objectives_coup

@@ -66,7 +66,7 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
     t0 = time.perf_counter()
 
     etha = FT(1) #parameter of RRT
-    distance_per_edge_limit = FT(math.sqrt(distance_to_travel * 0.02)) # added parameter
+    distance_per_edge_limit = FT(math.sqrt(distance_to_travel/3)) # added parameter
 
     #A list of the obstacles, each represented as a CGAL Polygon_2 object
     obstacles = [Polygon_2(obstacle) for obstacle in obstacles]
@@ -102,10 +102,10 @@ def generate_path(path, obstacles,  radius, distance_to_travel, start, end, coup
     done = False
     while(done != True):
         if counter > 100:
-            distance_per_edge_limit = distance_per_edge_limit/FT(1.2)
+            distance_per_edge_limit = distance_per_edge_limit/FT(1.1)
             counter = 0
         if counter < -100:
-            distance_per_edge_limit = distance_per_edge_limit*FT(1.2)
+            distance_per_edge_limit = distance_per_edge_limit*FT(1.1)
             counter = 0
         if(i%25 == 0):
             #Every 200 iterations attempt to connect the goal configuration
