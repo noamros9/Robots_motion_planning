@@ -95,14 +95,11 @@ def change_best_path(team_robots, i, k, colliding_robot):
     midx = (cur_point.x().to_double() + next_next_point.x().to_double()) / 2
     midy = (cur_point.y().to_double() + next_next_point.y().to_double()) / 2
     for j in range(10):
-        print(team_robots.g_tensor.best_path[k][i])
         randx = midx + (random.random() - 0.5) * radius
         randy = midy + (random.random() - 0.5) * radius
         rand_in_6d = Point_d(6, [FT(randx), FT(randy), FT(0), FT(0), FT(0), FT(0)])
         orig_copy = team_robots.g_tensor.best_path[k][i]
-        print(orig_copy)
         team_robots.g_tensor.best_path[k][i] = rand_in_6d
-        print(team_robots.g_tensor.best_path[k][i])
         if is_step_collide(team_robots, i, k) is None:
             return False
         team_robots.g_tensor.best_path[k][i] = orig_copy
@@ -119,13 +116,11 @@ def walk_best_path(team_robots, opponent_status):
     path_len = [0] * len(team_robots.team_robots)
     is_distance_left = True
     is_path_changed = [True] * len(team_robots.team_robots)
-    is_continue = True
-    while k < len(team_robots.g_tensor.best_path) and is_distance_left and is_continue:
+    while k < len(team_robots.g_tensor.best_path) and is_distance_left and any(is_path_changed):
         for i in range(len(team_robots.team_robots)):
             colliding_robot = is_step_collide(team_robots, i, k)
             if colliding_robot is not None:
                 if not is_path_changed[i] or change_best_path(team_robots, i, k, colliding_robot):
-                    is_continue = False
                     continue
                 is_path_changed[i] = False
             d = best_path_step_distance(team_robots, i, k)
